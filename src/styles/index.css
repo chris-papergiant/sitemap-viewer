@@ -1,0 +1,232 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: #F8FAFC;
+    min-height: 100vh;
+  }
+  
+  * {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  /* Clean Lorikeet CX Button System */
+  .btn {
+    @apply inline-flex items-center justify-center px-6 py-3 border border-transparent text-sm font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-4 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  .btn-primary {
+    @apply bg-blue text-white hover:bg-blue/90 focus:ring-blue/20;
+  }
+  
+  .btn-secondary {
+    @apply bg-white text-gray-700 border-2 border-gray-200 hover:border-gray-300 focus:ring-blue/20;
+  }
+  
+  .btn-ghost {
+    @apply text-gray-600 hover:text-blue hover:bg-gray-50 focus:ring-blue/20;
+  }
+  
+  .btn-success {
+    @apply bg-success-500 text-white hover:bg-success-500/90 focus:ring-success-500/20;
+  }
+  
+  .btn-lg {
+    @apply px-8 py-4 text-base rounded-2xl;
+  }
+  
+  .btn-xl {
+    @apply px-12 py-5 text-lg rounded-2xl font-bold;
+  }
+  
+  /* Clean Input System */
+  .input {
+    @apply block w-full rounded-xl border-2 border-gray-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-400 transition-all duration-200 focus:border-blue focus:ring-0 focus:outline-none hover:border-gray-300;
+  }
+  
+  .input-lg {
+    @apply px-6 py-4 text-lg rounded-2xl;
+  }
+  
+  /* Clean Card System */
+  .card {
+    @apply bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200;
+  }
+  
+  .card-elevated {
+    @apply bg-white rounded-2xl border border-gray-200 shadow-lg transition-all duration-200;
+  }
+  
+  .card-gradient {
+    @apply bg-white rounded-2xl border border-gray-100 shadow-sm transition-all duration-200;
+  }
+  
+  /* Focus Ring System */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-4 focus:ring-blue/20 focus:border-blue;
+  }
+  
+  /* Skip Navigation */
+  .skip-nav {
+    @apply absolute -top-40 left-6 z-50 bg-blue text-white px-4 py-2 rounded-lg font-medium focus:top-6 transition-all duration-200;
+  }
+  
+  /* Loading Shimmer Effect */
+  .loading-shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.6) 50%,
+      transparent 100%
+    );
+    background-size: 200px 100%;
+    animation: shimmer 2s infinite;
+  }
+  
+  /* Enhanced Tooltip */
+  .tooltip-enhanced {
+    @apply absolute z-50 px-3 py-2 text-sm font-medium text-white bg-gray-900/90 rounded-lg shadow-strong backdrop-blur-sm;
+    animation: scale-in 0.15s ease-out;
+  }
+  
+  /* Clean Status Badges */
+  .status-badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium;
+  }
+  
+  .status-badge-primary {
+    @apply status-badge bg-blue text-white;
+  }
+  
+  .status-badge-success {
+    @apply status-badge bg-success-500 text-white;
+  }
+  
+  .status-badge-warning {
+    @apply status-badge bg-warning-500 text-white;
+  }
+  
+  .status-badge-error {
+    @apply status-badge bg-error text-white;
+  }
+}
+
+@layer utilities {
+  /* Animation delays */
+  .delay-100 { animation-delay: 100ms; }
+  .delay-200 { animation-delay: 200ms; }
+  .delay-300 { animation-delay: 300ms; }
+  .delay-500 { animation-delay: 500ms; }
+  
+  /* Simple text gradient */
+  .text-gradient {
+    @apply text-blue;
+  }
+  
+  .text-gradient-rainbow {
+    @apply text-blue;
+  }
+}
+
+/* D3/Graph specific styles */
+.node circle {
+  cursor: pointer;
+  stroke: #4348DC;
+  stroke-width: 2px;
+  filter: drop-shadow(0 2px 4px rgba(67, 72, 220, 0.2));
+  transition: all 0.2s ease;
+}
+
+.node circle:hover {
+  stroke: #4348DC;
+  stroke-width: 3px;
+  filter: drop-shadow(0 4px 8px rgba(67, 72, 220, 0.3));
+}
+
+.node text {
+  font-size: 11px;
+  cursor: pointer;
+  font-weight: 500;
+  fill: #334155;
+  transition: all 0.2s ease;
+}
+
+.node text:hover {
+  fill: #4348DC;
+  font-weight: 600;
+}
+
+.link {
+  fill: none;
+  stroke: #cbd5e1;
+  stroke-width: 2px;
+  opacity: 0.8;
+  transition: all 0.2s ease;
+}
+
+.link:hover {
+  stroke: #94a3b8;
+  stroke-width: 3px;
+  opacity: 1;
+}
+
+.tooltip {
+  position: absolute;
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 12px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
+  color: white;
+  border-radius: 12px;
+  pointer-events: none;
+  z-index: 1000;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-weight: 500;
+  line-height: 1.5;
+  max-width: 280px;
+  animation: scale-in 0.2s ease-out;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+}
+
+/* Selection styling */
+::selection {
+  background: rgba(14, 165, 233, 0.2);
+  color: #0c4a6e;
+}
+
+::-moz-selection {
+  background: rgba(14, 165, 233, 0.2);
+  color: #0c4a6e;
+}
