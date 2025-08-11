@@ -19,7 +19,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   const [searchMode, setSearchMode] = useState<'text' | 'regex'>('text');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const searchTimeoutRef = useRef<NodeJS.Timeout>();
+  const searchTimeoutRef = useRef<number>();
 
   useEffect(() => {
     // Clear existing timeout
@@ -29,7 +29,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
     
     // Set new timeout with longer delay for regex
     const delay = searchMode === 'regex' ? 500 : 300;
-    searchTimeoutRef.current = setTimeout(() => {
+    searchTimeoutRef.current = window.setTimeout(() => {
       onSearch(query);
     }, delay);
 

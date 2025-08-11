@@ -72,7 +72,8 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
     searchInputRef.current?.focus();
   };
 
-  const activeView = views.find(v => v.type === currentView);
+  // Find active view (currently unused but may be needed later)
+  // const activeView = views.find(v => v.type === currentView);
 
   return (
     <div 

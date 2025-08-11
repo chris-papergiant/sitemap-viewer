@@ -1,7 +1,7 @@
 import React from 'react';
 import { TreeNode, getTreeStats } from '../utils/treeBuilder';
 import { SitemapEntry } from '../utils/sitemapParser';
-import { Globe, Layers, MapPin, TrendingUp, Clock, AlertTriangle } from 'lucide-react';
+import { Globe, Layers, MapPin, TrendingUp, Clock } from 'lucide-react';
 
 interface SitemapStatsProps {
   treeData: TreeNode | null;
@@ -14,12 +14,13 @@ const SitemapStats: React.FC<SitemapStatsProps> = ({ treeData, urls }) => {
   const stats = getTreeStats(treeData);
   const uniqueDomains = new Set(urls.map(url => new URL(url.loc).hostname));
   
-  const priorityGroups = urls.reduce((acc, url) => {
-    const priority = url.priority ?? 0.5;
-    const key = priority >= 0.8 ? 'high' : priority >= 0.5 ? 'medium' : 'low';
-    acc[key] = (acc[key] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  // Calculate priority groups (currently unused but may be needed later)
+  // const priorityGroups = urls.reduce((acc, url) => {
+  //   const priority = url.priority ?? 0.5;
+  //   const key = priority >= 0.8 ? 'high' : priority >= 0.5 ? 'medium' : 'low';
+  //   acc[key] = (acc[key] || 0) + 1;
+  //   return acc;
+  // }, {} as Record<string, number>);
   
   // Calculate additional statistics
   const recentUrls = urls.filter(url => {
@@ -29,11 +30,12 @@ const SitemapStats: React.FC<SitemapStatsProps> = ({ treeData, urls }) => {
     return lastMod > thirtyDaysAgo;
   }).length;
   
-  const changeFreqGroups = urls.reduce((acc, url) => {
-    const freq = url.changefreq || 'unknown';
-    acc[freq] = (acc[freq] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  // Calculate change frequency groups (currently unused but may be needed later)
+  // const changeFreqGroups = urls.reduce((acc, url) => {
+  //   const freq = url.changefreq || 'unknown';
+  //   acc[freq] = (acc[freq] || 0) + 1;
+  //   return acc;
+  // }, {} as Record<string, number>);
   
   const avgDepth = urls.length > 0 ? 
     urls.reduce((sum, url) => {

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Globe, Search, Sparkles, Zap } from 'lucide-react';
+import { Globe, Search } from 'lucide-react';
 
 interface SitemapFetcherProps {
   onFetch: (url: string) => void;
