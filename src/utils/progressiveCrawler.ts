@@ -1,13 +1,11 @@
 import { TreeNode } from './treeBuilder';
 
 // CORS proxy configuration - using multiple proxies as fallbacks
-// Note: Some proxies work better with certain sites
-// Unfortunately, many government sites block most CORS proxies
+// Note: proxy.cors.sh works best for most sites when proper headers are sent
 const CORS_PROXIES = [
-  'https://corsproxy.io/?',  
   'https://proxy.cors.sh/',
+  'https://corsproxy.io/?',  
   'https://api.codetabs.com/v1/proxy?quest=',
-  'https://thingproxy.freeboard.io/fetch/',
   'https://cors-anywhere.herokuapp.com/'
 ];
 
@@ -228,10 +226,9 @@ class ProgressiveCrawler {
     
     for (const proxy of CORS_PROXIES) {
       proxyAttempt++;
-      const proxyName = proxy.includes('corsproxy.io') ? 'corsproxy.io' :
-                       proxy.includes('cors.sh') ? 'cors.sh' :
+      const proxyName = proxy.includes('cors.sh') ? 'cors.sh' :
+                       proxy.includes('corsproxy.io') ? 'corsproxy.io' :
                        proxy.includes('codetabs') ? 'codetabs' :
-                       proxy.includes('thingproxy') ? 'thingproxy' :
                        proxy.includes('herokuapp') ? 'cors-anywhere' : 'unknown';
       
       console.group(`%c🔄 Proxy Attempt ${proxyAttempt}/${CORS_PROXIES.length}: ${proxyName}`, 'color: #2196F3');
@@ -249,13 +246,11 @@ class ProgressiveCrawler {
         });
         
         const startTime = Date.now();
-        // Different headers for different proxies
-        const headers: HeadersInit = proxy.includes('allorigins') ? 
-          {} : // AllOrigins doesn't need special headers
-          {
-            'Accept': 'text/html',
-            'X-Requested-With': 'XMLHttpRequest' // Required for some proxies
-          };
+        // Headers required for proxies (especially proxy.cors.sh)
+        const headers: HeadersInit = {
+          'Accept': 'text/html',
+          'X-Requested-With': 'XMLHttpRequest' // Required for proxy.cors.sh
+        };
         
         const response = await fetch(proxyUrl, {
           signal: this.abortController?.signal,
@@ -687,10 +682,9 @@ if (typeof window !== 'undefined') {
       console.log('Testing URL:', url);
       
       for (const proxy of CORS_PROXIES) {
-        const proxyName = proxy.includes('corsproxy.io') ? 'corsproxy.io' :
-                         proxy.includes('cors.sh') ? 'cors.sh' :
+        const proxyName = proxy.includes('cors.sh') ? 'cors.sh' :
+                         proxy.includes('corsproxy.io') ? 'corsproxy.io' :
                          proxy.includes('codetabs') ? 'codetabs' :
-                         proxy.includes('thingproxy') ? 'thingproxy' :
                          proxy.includes('herokuapp') ? 'cors-anywhere' : 'unknown';
         
         const proxyUrl = (proxy.includes('quest=') || 

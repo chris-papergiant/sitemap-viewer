@@ -123,9 +123,11 @@ export const fetchSitemap = async (url: string, onProgress?: (message: string) =
     : getSitemapAlternatives(baseUrl);
   
   // Try multiple CORS proxies in order of reliability
+  // Note: proxy.cors.sh works best for most sites when proper headers are sent
   const corsProxies = [
+    (url: string) => `https://proxy.cors.sh/${url}`,
     (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    (url: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
     (url: string) => `https://cors-anywhere.herokuapp.com/${url}`,
   ];
   
@@ -192,6 +194,7 @@ const fetchWithProxies = async (url: string, corsProxies: ((url: string) => stri
       const response = await fetch(proxyUrl, {
         headers: {
           'Accept': 'application/xml, text/xml, */*',
+          'X-Requested-With': 'XMLHttpRequest' // Required for proxy.cors.sh
         }
       });
       
