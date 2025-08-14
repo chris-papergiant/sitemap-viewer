@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Crawler Integration Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; max-width: 1200px; margin: 0 auto; }
+        .controls { margin-bottom: 20px; }
+        button { padding: 10px 20px; margin: 5px; }
+        .log { background: #f0f0f0; padding: 10px; height: 400px; overflow-y: auto; font-size: 12px; }
+        .log-entry { margin: 2px 0; }
+        .info { color: #0066cc; }
+        .warn { color: #ff9900; }
+        .error { color: #ff0000; }
+        .success { color: #00aa00; }
+    </style>
+</head>
+<body>
+    <h1>Crawler Integration Test</h1>
+    
+    <div class="controls">
+        <button onclick="testVichealth()">Test vichealth.vic.gov.au (Should use API)</button>
+        <button onclick="testPortable()">Test portable.com.au (Should work with proxies)</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+    
+    <div id="log" class="log"></div>
+
+    <script type="module">
+        import ProgressiveCrawler from './src/utils/progressiveCrawler.ts';
+        
+        const logDiv = document.getElementById('log');
+        
+        function log(level, message, data) {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${level}`;
+            const timestamp = new Date().toISOString().split('T')[1];
+            entry.textContent = `[${timestamp}] ${message}`;
+            if (data) {
+                entry.textContent += ' ' + JSON.stringify(data);
+            }
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        window.clearLog = function() {
+            logDiv.innerHTML = '';
+        }
+        
+        async function testCrawler(url) {
+            clearLog();
+            log('info', `Starting crawl of ${url}`);
+            
+            const crawler = new ProgressiveCrawler((state) => {
+                log('info', `State update:`, {
+                    status: state.status,
+                    found: state.stats.pagesFound,
+                    processed: state.stats.pagesProcessed,
+                    failed: state.stats.failedPages.length
+                });
+                
+                if (state.status === 'complete') {
+                    log('success', '✅ Crawl complete!', {
+                        total: state.stats.pagesFound,
+                        processed: state.stats.pagesProcessed,
+                        failed: state.stats.failedPages.length
+                    });
+                }
+                
+                if (state.status === 'error') {
+                    log('error', '❌ Crawl failed!');
+                }
+            });
+            
+            // Override console methods to capture logs
+            const originalLog = console.log;
+            const originalWarn = console.warn;
+            const originalError = console.error;
+            
+            console.log = (...args) => {
+                originalLog(...args);
+                const message = args.join(' ');
+                if (message.includes('📊 Received HTML')) {
+                    log('info', message);
+                } else if (message.includes('❌ Proxy returned invalid')) {
+                    log('warn', message);
+                } else if (message.includes('🌐 Attempting server-side')) {
+                    log('success', message);
+                } else if (message.includes('✅ Success with')) {
+                    log('success', message);
+                }
+            };
+            
+            console.warn = (...args) => {
+                originalWarn(...args);
+                log('warn', args.join(' '));
+            };
+            
+            console.error = (...args) => {
+                originalError(...args);
+                log('error', args.join(' '));
+            };
+            
+            try {
+                await crawler.startCrawl(url, 1, 5);
+            } catch (error) {
+                log('error', `Crawl error: ${error.message}`);
+            } finally {
+                // Restore console methods
+                console.log = originalLog;
+                console.warn = originalWarn;
+                console.error = originalError;
+            }
+        }
+        
+        window.testVichealth = () => testCrawler('https://vichealth.vic.gov.au');
+        window.testPortable = () => testCrawler('https://portable.com.au');
+    </script>
+</body>
+</html>
