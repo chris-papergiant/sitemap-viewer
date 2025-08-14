@@ -11,7 +11,8 @@ import Logo from './components/Logo';
 import { fetchSitemap, parseSitemapXML, SitemapEntry } from './utils/sitemapParser';
 import { buildTreeFromUrls, TreeNode } from './utils/treeBuilder';
 import { exportTreeToCSV } from './utils/csvExporter';
-import { Download } from 'lucide-react';
+import ProgressiveCrawler, { CrawlState } from './utils/progressiveCrawler';
+import { Download, AlertCircle, Play, Pause, Square } from 'lucide-react';
 
 // URL parameter utilities for shareable links
 const updateUrlParams = (url: string, view: ViewType) => {
@@ -43,6 +44,10 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isVisualisationMode, setIsVisualisationMode] = useState(false);
   const [currentUrl, setCurrentUrl] = useState('');
+  const [isCrawling, setIsCrawling] = useState(false);
+  const [crawlState, setCrawlState] = useState<CrawlState | null>(null);
+  const [showCrawlOption, setShowCrawlOption] = useState(false);
+  const crawlerRef = useRef<ProgressiveCrawler | null>(null);
   const isCompleteRef = useRef(false);
 
   const handleFetchSitemap = async (url: string) => {
@@ -152,6 +157,8 @@ function App() {
     } catch (err) {
       console.error('Error during sitemap fetch:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch or parse sitemap');
+      setShowCrawlOption(true); // Show crawl option when sitemap fails
+      setCurrentUrl(url); // Store URL for potential crawling
     } finally {
       // Keep the progress bar visible for a moment at 100%
       if (isCompleteRef.current) {
@@ -165,6 +172,59 @@ function App() {
         setProgress(0);
       }
     }
+  };
+
+  const handleStartCrawl = async (url: string) => {
+    setError(null);
+    setShowCrawlOption(false);
+    setIsCrawling(true);
+    setIsVisualisationMode(true);
+    setCurrentUrl(url);
+    
+    // Initialize crawler
+    crawlerRef.current = new ProgressiveCrawler((state) => {
+      setCrawlState(state);
+      setTreeData(state.tree);
+      
+      // Convert discovered URLs to SitemapEntry format for stats
+      const mockUrls: SitemapEntry[] = Array.from(state.discovered).map(url => ({
+        loc: url
+      }));
+      setUrls(mockUrls);
+      
+      // Update progress messages
+      setProgressMessage(`Discovering site structure...`);
+      setProgressSubMessage(`${state.stats.pagesFound} pages found, ${state.stats.pagesProcessed} processed`);
+      
+      // If crawling is complete or errored, update UI
+      if (state.status === 'complete' || state.status === 'error') {
+        setIsCrawling(false);
+        if (state.status === 'complete') {
+          setError(null); // Clear any previous errors
+        }
+      }
+    });
+    
+    try {
+      await crawlerRef.current.startCrawl(url);
+    } catch (error) {
+      console.error('Crawl error:', error);
+      setError('Failed to crawl website. The site may be blocking automated access.');
+      setIsCrawling(false);
+    }
+  };
+
+  const handlePauseCrawl = () => {
+    crawlerRef.current?.pause();
+  };
+
+  const handleResumeCrawl = () => {
+    crawlerRef.current?.resume();
+  };
+
+  const handleStopCrawl = () => {
+    crawlerRef.current?.stop();
+    setIsCrawling(false);
   };
 
   // Load from URL parameters on initial load
@@ -279,6 +339,34 @@ function App() {
                         <li>• The website may not have a public sitemap.xml file</li>
                       </ul>
                     </div>
+                    
+                    {showCrawlOption && !isCrawling && (
+                      <div className="mt-6 p-4 bg-primary-pink/5 rounded-lg border border-primary-pink/20">
+                        <div className="flex items-start gap-3">
+                          <AlertCircle className="w-5 h-5 text-primary-pink mt-0.5" />
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold text-gray-900 mb-1">
+                              Alternative: Crawl the website
+                            </p>
+                            <p className="text-xs text-gray-600 mb-3">
+                              We can try to discover pages by crawling the website directly. This will take longer but may work when sitemaps aren't available.
+                            </p>
+                            <button
+                              onClick={() => handleStartCrawl(currentUrl)}
+                              className="flex items-center gap-2 px-4 py-2 bg-primary-pink text-white rounded-lg hover:bg-primary-pink/90 transition-colors text-sm font-medium"
+                              style={{
+                                backgroundColor: '#DB1B5C',
+                                color: '#ffffff'
+                              }}
+                            >
+                              <Play className="w-4 h-4" style={{ color: '#ffffff' }} />
+                              <span style={{ color: '#ffffff', opacity: 1 }}>Start Website Crawl</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
                     {isVisualisationMode && (
                       <Button
                         variant="secondary"
@@ -289,6 +377,7 @@ function App() {
                           setCurrentUrl('');
                           setSearchQuery('');
                           setError(null);
+                          setShowCrawlOption(false);
                         }}
                         className="mt-6"
                       >
@@ -345,7 +434,47 @@ function App() {
                     {currentUrl ? (currentUrl.includes('://') ? new URL(currentUrl).hostname : currentUrl) : 'Sitemap Analysis'}
                   </h2>
                   
-                  <button
+                  <div className="flex items-center gap-3">
+                    {/* Crawl status and controls */}
+                    {isCrawling && crawlState && (
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-primary-pink/10 rounded-lg">
+                          <div className="w-2 h-2 bg-primary-pink rounded-full animate-pulse" />
+                          <span className="text-xs font-medium text-gray-700">
+                            Crawling: {crawlState.stats.pagesFound} pages found
+                          </span>
+                        </div>
+                        
+                        {crawlState.status === 'crawling' ? (
+                          <button
+                            onClick={handlePauseCrawl}
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            title="Pause crawling"
+                          >
+                            <Pause className="w-4 h-4 text-gray-600" />
+                          </button>
+                        ) : crawlState.status === 'paused' ? (
+                          <button
+                            onClick={handleResumeCrawl}
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            title="Resume crawling"
+                          >
+                            <Play className="w-4 h-4 text-gray-600" />
+                          </button>
+                        ) : null}
+                        
+                        <button
+                          onClick={handleStopCrawl}
+                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                          title="Stop crawling"
+                        >
+                          <Square className="w-4 h-4 text-gray-600" />
+                        </button>
+                      </div>
+                    )}
+                    
+                    {/* Download CSV button */}
+                    <button
                     onClick={() => {
                       if (treeData) {
                         let siteName = 'sitemap';
@@ -386,7 +515,42 @@ function App() {
                     <Download className="w-4 h-4" style={{ color: '#ffffff' }} />
                     <span style={{ color: '#ffffff', opacity: 1 }}>Download as CSV</span>
                   </button>
+                  </div>
                 </div>
+                
+                {/* Crawling progress bar */}
+                {isCrawling && crawlState && (
+                  <div className="bg-primary-pink/5 border-b border-primary-pink/20 px-6 py-3">
+                    <div className="max-w-7xl mx-auto">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-4 text-sm">
+                          <span className="font-medium text-gray-700">
+                            Discovering site structure...
+                          </span>
+                          <span className="text-gray-600">
+                            {crawlState.stats.pagesProcessed} / {crawlState.stats.pagesFound} pages processed
+                          </span>
+                          <span className="text-gray-500">
+                            Depth: {crawlState.stats.currentDepth}
+                          </span>
+                        </div>
+                        {crawlState.stats.failedPages.length > 0 && (
+                          <span className="text-xs text-red-600">
+                            {crawlState.stats.failedPages.length} pages failed
+                          </span>
+                        )}
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-1.5">
+                        <div 
+                          className="bg-primary-pink h-1.5 rounded-full transition-all duration-300"
+                          style={{ 
+                            width: `${Math.min(100, (crawlState.stats.pagesProcessed / Math.max(1, crawlState.stats.estimatedTotal)) * 100)}%` 
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             
