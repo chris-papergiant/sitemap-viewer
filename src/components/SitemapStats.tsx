@@ -1,7 +1,7 @@
 import React from 'react';
 import { TreeNode, getTreeStats } from '../utils/treeBuilder';
 import { SitemapEntry } from '../utils/sitemapParser';
-import { Globe, Layers, FolderTree, Activity, Clock, BarChart3 } from 'lucide-react';
+import { Globe, FolderTree, Activity, BarChart3 } from 'lucide-react';
 
 interface SitemapStatsProps {
   treeData: TreeNode | null;

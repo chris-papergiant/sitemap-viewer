@@ -152,13 +152,17 @@ const SitemapFetcher: React.FC<SitemapFetcherProps> = ({ onFetch, isLoading }) =
                 if (!isLoading && url.trim()) {
                   e.currentTarget.style.background = '#333333';
                   e.currentTarget.style.backgroundColor = '#333333';
-                  e.currentTarget.parentElement.style.background = '#333333';
+                  if (e.currentTarget.parentElement) {
+                    e.currentTarget.parentElement.style.background = '#333333';
+                  }
                 }
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = '#000000';
                 e.currentTarget.style.backgroundColor = '#000000';
-                e.currentTarget.parentElement.style.background = '#000000';
+                if (e.currentTarget.parentElement) {
+                  e.currentTarget.parentElement.style.background = '#000000';
+                }
               }}
               aria-describedby="submit-help"
             >
