@@ -83,10 +83,10 @@ export default async function handler(
 
     console.log(`[Browser Fetch] Navigating to ${url}...`);
 
-    // Navigate to the URL with network idle wait
+    // Navigate to the URL - wait for DOM content instead of network idle
     const response = await page.goto(url, {
-      waitUntil: 'networkidle',
-      timeout: 30000 // 30 second timeout
+      waitUntil: 'domcontentloaded',
+      timeout: 25000 // 25 second timeout
     });
 
     if (!response) {
