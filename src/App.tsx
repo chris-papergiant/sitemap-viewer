@@ -350,11 +350,30 @@ function App() {
                         exportTreeToCSV(treeData, siteName);
                       }
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-primary-pink text-white rounded-lg hover:bg-primary-pink/90 transition-colors text-sm font-medium"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 16px',
+                      backgroundColor: '#DB1B5C',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      transition: 'opacity 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.opacity = '0.9';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.opacity = '1';
+                    }}
                     aria-label="Download sitemap as CSV"
                   >
-                    <Download className="w-4 h-4" />
-                    <span>Download CSV</span>
+                    <Download className="w-4 h-4" style={{ color: '#ffffff' }} />
+                    <span style={{ color: '#ffffff', opacity: 1 }}>Download CSV</span>
                   </button>
                 </div>
               </div>
