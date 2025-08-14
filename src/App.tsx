@@ -350,7 +350,7 @@ function App() {
                         exportTreeToCSV(treeData, siteName);
                       }
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium"
+                    className="flex items-center gap-2 px-4 py-2 bg-primary-pink text-white rounded-lg hover:bg-primary-pink/90 transition-colors text-sm font-medium"
                     aria-label="Download sitemap as CSV"
                   >
                     <Download className="w-4 h-4" />
