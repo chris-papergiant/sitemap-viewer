@@ -35,9 +35,8 @@ export default async function handler(
   try {
     // Get or cache the executable path
     if (!executablePath) {
-      executablePath = await chromiumMin.executablePath(
-        'https://github.com/Sparticuz/chromium/releases/download/v138.0.2/chromium-v138.0.2-pack.tar'
-      );
+      // Use the default chromium binary from @sparticuz/chromium-min
+      executablePath = await chromiumMin.executablePath();
     }
 
     // Launch browser with serverless-optimized settings
