@@ -20,7 +20,7 @@ const GraphView: React.FC<GraphViewProps> = ({ data, searchQuery }) => {
       if (container) {
         setDimensions({
           width: container.clientWidth - 32, // Account for padding
-          height: 600
+          height: Math.min(600, window.innerHeight - 300)
         });
       }
     };
@@ -82,7 +82,7 @@ const GraphView: React.FC<GraphViewProps> = ({ data, searchQuery }) => {
         .y(d => d.x))
       .style('stroke', d => {
         if (searchQuery && (matchesSearch(d.source) || matchesSearch(d.target))) {
-          return '#fbbf24'; // Yellow for search matches
+          return '#DB1B5C'; // Pink for search matches
         }
         return '#ccc';
       })
@@ -108,12 +108,12 @@ const GraphView: React.FC<GraphViewProps> = ({ data, searchQuery }) => {
         return 6;
       })
       .style('fill', d => {
-        if (matchesSearch(d)) return '#fbbf24'; // Yellow for search matches
-        return colorScale(String(d.depth));
+        if (matchesSearch(d)) return '#DB1B5C'; // Pink for search matches
+        return d.depth === 0 ? '#DB1B5C' : colorScale(String(d.depth));
       })
       .style('stroke', d => {
-        if (matchesSearch(d)) return '#f59e0b';
-        return '#3182ce';
+        if (matchesSearch(d)) return '#BE185D';
+        return '#DB1B5C';
       })
       .style('stroke-width', d => {
         if (matchesSearch(d)) return 2;
@@ -163,7 +163,7 @@ const GraphView: React.FC<GraphViewProps> = ({ data, searchQuery }) => {
         return 'normal';
       })
       .style('fill', d => {
-        if (matchesSearch(d)) return '#92400e';
+        if (matchesSearch(d)) return '#BE185D';
         return '#333';
       });
 

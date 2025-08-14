@@ -1,0 +1,281 @@
+/**
+ * Paper Giant Button Themes
+ * Easy theme switching and customization using CSS custom properties
+ * Change themes by applying different classes to :root or specific containers
+ */
+
+/* ========================================
+   DEFAULT THEME (Paper Giant Standard)
+   Already defined in button-system.css as :root
+   ======================================== */
+
+/* ========================================
+   DARK MODE THEME
+   Optimized for dark backgrounds
+   ======================================== */
+
+.theme-dark {
+  /* Primary Button - Lighter for dark backgrounds */
+  --btn-primary-bg: #ffffff;
+  --btn-primary-bg-hover: #f5f5f5;
+  --btn-primary-bg-active: #e5e5e5;
+  --btn-primary-color: #292A2C;
+  --btn-primary-color-hover: #292A2C;
+  --btn-primary-border: #ffffff;
+  --btn-primary-border-hover: #f5f5f5;
+  --btn-primary-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  --btn-primary-shadow-hover: 0 4px 8px rgba(0, 0, 0, 0.4);
+  
+  /* Secondary Button - Dark theme appropriate */
+  --btn-secondary-bg: transparent;
+  --btn-secondary-bg-hover: rgba(255, 255, 255, 0.1);
+  --btn-secondary-bg-active: rgba(255, 255, 255, 0.15);
+  --btn-secondary-color: #ffffff;
+  --btn-secondary-color-hover: #DB1B5C;
+  --btn-secondary-border: rgba(255, 255, 255, 0.3);
+  --btn-secondary-border-hover: #DB1B5C;
+  --btn-secondary-shadow: none;
+  --btn-secondary-shadow-hover: 0 2px 4px rgba(219, 27, 92, 0.2);
+  
+  /* Ghost Button - For dark backgrounds */
+  --btn-ghost-bg: transparent;
+  --btn-ghost-bg-hover: rgba(255, 255, 255, 0.1);
+  --btn-ghost-bg-active: rgba(255, 255, 255, 0.15);
+  --btn-ghost-color: #ffffff;
+  --btn-ghost-color-hover: #DB1B5C;
+  --btn-ghost-border: transparent;
+  --btn-ghost-border-hover: transparent;
+}
+
+/* ========================================
+   HIGH CONTRAST THEME
+   WCAG AAA compliant for accessibility
+   ======================================== */
+
+.theme-high-contrast {
+  /* Primary Button - Maximum contrast */
+  --btn-primary-bg: #000000;
+  --btn-primary-bg-hover: #1a1a1a;
+  --btn-primary-bg-active: #333333;
+  --btn-primary-color: #ffffff;
+  --btn-primary-color-hover: #ffffff;
+  --btn-primary-border: #000000;
+  --btn-primary-border-hover: #1a1a1a;
+  --btn-primary-shadow: 0 0 0 2px #000000;
+  --btn-primary-shadow-hover: 0 0 0 3px #000000;
+  
+  /* Secondary Button - High contrast outline */
+  --btn-secondary-bg: #ffffff;
+  --btn-secondary-bg-hover: #f0f0f0;
+  --btn-secondary-bg-active: #e0e0e0;
+  --btn-secondary-color: #000000;
+  --btn-secondary-color-hover: #000000;
+  --btn-secondary-border: #000000;
+  --btn-secondary-border-hover: #000000;
+  --btn-secondary-shadow: 0 0 0 2px #000000;
+  --btn-secondary-shadow-hover: 0 0 0 3px #000000;
+  
+  /* Ghost Button - High contrast */
+  --btn-ghost-bg: transparent;
+  --btn-ghost-bg-hover: #f0f0f0;
+  --btn-ghost-bg-active: #e0e0e0;
+  --btn-ghost-color: #000000;
+  --btn-ghost-color-hover: #000000;
+  --btn-ghost-border: #000000;
+  --btn-ghost-border-hover: #000000;
+  --btn-ghost-shadow: none;
+  --btn-ghost-shadow-hover: 0 0 0 2px #000000;
+  
+  /* Increase font weight for better readability */
+  --btn-font-weight: 600;
+  
+  /* Stronger borders */
+  --btn-border-width: 2px;
+}
+
+/* ========================================
+   VIBRANT THEME
+   Enhanced Paper Giant colors for energetic feel
+   ======================================== */
+
+.theme-vibrant {
+  /* Primary Button - Gradient magic */
+  --btn-primary-bg: linear-gradient(135deg, #DB1B5C 0%, #3B82F6 100%);
+  --btn-primary-bg-hover: linear-gradient(135deg, #BE185D 0%, #2563EB 100%);
+  --btn-primary-bg-active: linear-gradient(135deg, #9D174D 0%, #1D4ED8 100%);
+  --btn-primary-color: #ffffff;
+  --btn-primary-color-hover: #ffffff;
+  --btn-primary-border: transparent;
+  --btn-primary-border-hover: transparent;
+  --btn-primary-shadow: 0 4px 14px rgba(219, 27, 92, 0.25);
+  --btn-primary-shadow-hover: 0 8px 20px rgba(219, 27, 92, 0.3);
+  
+  /* Secondary Button - Energetic outline */
+  --btn-secondary-bg: transparent;
+  --btn-secondary-bg-hover: rgba(219, 27, 92, 0.1);
+  --btn-secondary-bg-active: rgba(219, 27, 92, 0.15);
+  --btn-secondary-color: #DB1B5C;
+  --btn-secondary-color-hover: #BE185D;
+  --btn-secondary-border: #DB1B5C;
+  --btn-secondary-border-hover: #BE185D;
+  --btn-secondary-shadow: 0 2px 4px rgba(219, 27, 92, 0.1);
+  --btn-secondary-shadow-hover: 0 4px 8px rgba(219, 27, 92, 0.15);
+  
+  /* Ghost Button - Subtle vibrant */
+  --btn-ghost-bg: transparent;
+  --btn-ghost-bg-hover: rgba(219, 27, 92, 0.05);
+  --btn-ghost-bg-active: rgba(219, 27, 92, 0.1);
+  --btn-ghost-color: #DB1B5C;
+  --btn-ghost-color-hover: #BE185D;
+  --btn-ghost-border: transparent;
+  --btn-ghost-border-hover: transparent;
+}
+
+/* ========================================
+   MINIMAL THEME
+   For when you need subtle, understated buttons
+   ======================================== */
+
+.theme-minimal {
+  /* Primary Button - Minimal but effective */
+  --btn-primary-bg: #292A2C;
+  --btn-primary-bg-hover: #1a1b1d;
+  --btn-primary-bg-active: #0f1011;
+  --btn-primary-color: #ffffff;
+  --btn-primary-color-hover: #ffffff;
+  --btn-primary-border: #292A2C;
+  --btn-primary-border-hover: #1a1b1d;
+  --btn-primary-shadow: none;
+  --btn-primary-shadow-hover: none;
+  
+  /* Secondary Button - Very subtle */
+  --btn-secondary-bg: transparent;
+  --btn-secondary-bg-hover: #f8f8f8;
+  --btn-secondary-bg-active: #f0f0f0;
+  --btn-secondary-color: #292A2C;
+  --btn-secondary-color-hover: #292A2C;
+  --btn-secondary-border: #e0e0e0;
+  --btn-secondary-border-hover: #d0d0d0;
+  --btn-secondary-shadow: none;
+  --btn-secondary-shadow-hover: none;
+  
+  /* Ghost Button - Ultra minimal */
+  --btn-ghost-bg: transparent;
+  --btn-ghost-bg-hover: #f8f8f8;
+  --btn-ghost-bg-active: #f0f0f0;
+  --btn-ghost-color: #666666;
+  --btn-ghost-color-hover: #292A2C;
+  --btn-ghost-border: transparent;
+  --btn-ghost-border-hover: transparent;
+  --btn-ghost-shadow: none;
+  --btn-ghost-shadow-hover: none;
+  
+  /* Minimal font weight */
+  --btn-font-weight: 400;
+  
+  /* Reduced padding for tighter feel */
+  --btn-padding-sm: 0.375rem 0.75rem;
+  --btn-padding-md: 0.5rem 1rem;
+  --btn-padding-lg: 0.75rem 1.5rem;
+  --btn-padding-xl: 1rem 2rem;
+}
+
+/* ========================================
+   GLASS THEME
+   Modern glassmorphism effect
+   ======================================== */
+
+.theme-glass {
+  /* Primary Button - Glass effect */
+  --btn-primary-bg: rgba(41, 42, 44, 0.8);
+  --btn-primary-bg-hover: rgba(41, 42, 44, 0.9);
+  --btn-primary-bg-active: rgba(41, 42, 44, 1);
+  --btn-primary-color: #ffffff;
+  --btn-primary-color-hover: #ffffff;
+  --btn-primary-border: rgba(255, 255, 255, 0.1);
+  --btn-primary-border-hover: rgba(255, 255, 255, 0.2);
+  --btn-primary-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  --btn-primary-shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.15);
+  
+  /* Secondary Button - Frosted glass */
+  --btn-secondary-bg: rgba(255, 255, 255, 0.1);
+  --btn-secondary-bg-hover: rgba(255, 255, 255, 0.15);
+  --btn-secondary-bg-active: rgba(255, 255, 255, 0.2);
+  --btn-secondary-color: #292A2C;
+  --btn-secondary-color-hover: #DB1B5C;
+  --btn-secondary-border: rgba(255, 255, 255, 0.2);
+  --btn-secondary-border-hover: rgba(219, 27, 92, 0.3);
+  --btn-secondary-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  --btn-secondary-shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.15);
+  
+  /* Ghost Button - Subtle glass */
+  --btn-ghost-bg: rgba(255, 255, 255, 0.05);
+  --btn-ghost-bg-hover: rgba(255, 255, 255, 0.1);
+  --btn-ghost-bg-active: rgba(255, 255, 255, 0.15);
+  --btn-ghost-color: #292A2C;
+  --btn-ghost-color-hover: #DB1B5C;
+  --btn-ghost-border: rgba(255, 255, 255, 0.1);
+  --btn-ghost-border-hover: rgba(219, 27, 92, 0.2);
+  --btn-ghost-shadow: none;
+  --btn-ghost-shadow-hover: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Add backdrop blur to glass theme buttons */
+.theme-glass .btn {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* ========================================
+   THEME UTILITIES
+   Helper classes for applying themes to specific sections
+   ======================================== */
+
+/* Apply theme to specific components */
+.btn-themed-dark { @extend .theme-dark; }
+.btn-themed-vibrant { @extend .theme-vibrant; }
+.btn-themed-minimal { @extend .theme-minimal; }
+.btn-themed-glass { @extend .theme-glass; }
+
+/* Responsive theme switching */
+@media (prefers-color-scheme: dark) {
+  .btn-auto-theme {
+    @extend .theme-dark;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  .btn-auto-theme {
+    /* Use default theme */
+  }
+}
+
+/* High contrast media query support */
+@media (prefers-contrast: high) {
+  .btn {
+    @extend .theme-high-contrast;
+  }
+}
+
+/* ========================================
+   CUSTOM THEME EXAMPLE
+   How to create your own button theme
+   ======================================== */
+
+/*
+.theme-custom {
+  --btn-primary-bg: #your-color;
+  --btn-primary-bg-hover: #your-hover-color;
+  --btn-primary-color: #your-text-color;
+  
+  Add any other custom properties you want to override
+}
+
+Apply with:
+<div className="theme-custom">
+  <Button variant="primary">Custom themed button</Button>
+</div>
+
+Or apply globally:
+document.documentElement.className = 'theme-custom';
+*/

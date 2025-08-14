@@ -82,15 +82,15 @@ const SearchBar: React.FC<SearchBarProps> = ({
         
         {stats && (
           <div 
-            className="flex items-center space-x-2 px-3 py-1.5 bg-secondary-50 text-secondary-700 rounded-full border border-secondary-200"
+            className="flex items-center space-x-2 px-3 py-1.5 bg-gradient-pink-blue text-white rounded-full shadow-glow-pink"
             role="status"
             aria-live="polite"
             aria-label={`Found ${stats.count} results out of ${stats.total} URLs`}
           >
             <Zap className="h-4 w-4" aria-hidden="true" />
             <span className="font-medium">{stats.count}</span>
-            <span className="text-secondary-600">of {stats.total}</span>
-            <span className="text-xs text-secondary-500">({stats.percentage}%)</span>
+            <span className="text-white text-opacity-90">of {stats.total}</span>
+            <span className="text-xs text-white text-opacity-80">({stats.percentage}%)</span>
           </div>
         )}
       </div>
@@ -112,7 +112,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
             onBlur={() => setIsFocused(false)}
             className={`
               input w-full pl-10 pr-20 py-3 text-base
-              ${isFocused ? 'ring-2 ring-primary-500 border-primary-500' : ''}
+              ${isFocused ? 'ring-2 ring-primary-pink border-primary-pink shadow-glow-pink' : ''}
             `}
             placeholder={placeholder}
             aria-label="Search URLs"
@@ -137,7 +137,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
               onClick={() => setShowAdvanced(!showAdvanced)}
               className={`
                 p-1 rounded transition-colors
-                ${showAdvanced ? 'bg-primary-100 text-primary-700' : 'hover:bg-gray-100 text-gray-500'}
+                ${showAdvanced ? 'bg-primary-pink-100 text-primary-pink-700 shadow-glow-pink' : 'hover:bg-gray-100 text-gray-500'}
               `}
               title="Toggle advanced options"
               aria-label="Toggle advanced search options"
@@ -158,8 +158,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
                 className={`
                   px-3 py-1 text-sm font-medium rounded-md transition-all
                   ${searchMode === 'text'
-                    ? 'bg-white text-primary-700 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-800'
+                    ? 'bg-gradient-pink-teal text-white shadow-glow-pink'
+                    : 'text-gray-600 hover:text-primary-pink'
                   }
                 `}
                 role="tab"
@@ -173,8 +173,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
                 className={`
                   px-3 py-1 text-sm font-medium rounded-md transition-all
                   ${searchMode === 'regex'
-                    ? 'bg-white text-primary-700 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-800'
+                    ? 'bg-gradient-purple-pink text-white shadow-glow-purple'
+                    : 'text-gray-600 hover:text-primary-pink'
                   }
                 `}
                 role="tab"

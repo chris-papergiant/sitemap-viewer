@@ -13,13 +13,13 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ progress, message, subMessage
   
   return (
     <div className="w-full max-w-2xl mx-auto animate-slide-up">
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+      <div className="bg-white rounded-2xl border border-primary-pink-100 shadow-glow-pink p-8">
         <div className="flex items-start space-x-4">
           {/* Loading Icon */}
           <div className="flex-shrink-0">
             <div className={`
               w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300
-              ${isComplete ? 'bg-success-500' : 'bg-blue'}
+              ${isComplete ? 'bg-success-500' : 'bg-primary-pink'}
             `}>
               {isComplete ? (
                 <svg 
@@ -62,7 +62,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ progress, message, subMessage
                   <div 
                     className={`
                       h-full rounded-full transition-all duration-500 ease-out
-                      ${isComplete ? 'bg-success-500' : 'bg-blue'}
+                      ${isComplete ? 'bg-success-500' : 'bg-primary-pink'}
                     `}
                     style={{ width: `${clampedProgress}%` }}
                   >
@@ -73,7 +73,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ progress, message, subMessage
                 <div className="absolute -top-1 transition-all duration-500" style={{ left: `${clampedProgress}%` }}>
                   <div className={`
                     w-4 h-4 rounded-full border-2 border-white shadow-sm transform -translate-x-1/2 transition-colors duration-300
-                    ${isComplete ? 'bg-success-500' : 'bg-blue'}
+                    ${isComplete ? 'bg-success-500' : 'bg-primary-pink'}
                   `} />
                 </div>
               </div>
@@ -85,7 +85,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ progress, message, subMessage
                 </span>
                 <span className={`
                   font-semibold tabular-nums transition-colors duration-300
-                  ${isComplete ? 'text-success-500' : 'text-blue'}
+                  ${isComplete ? 'text-gradient-cool' : 'text-gradient'}
                 `}>
                   {Math.round(clampedProgress)}%
                 </span>
@@ -99,9 +99,9 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ progress, message, subMessage
           <div className="mt-6 pt-4 border-t border-gray-200">
             <div className="flex items-center justify-center space-x-2 text-gray-500">
               <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-blue/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <div className="w-2 h-2 bg-blue/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <div className="w-2 h-2 bg-blue/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                <div className="w-2 h-2 bg-primary-pink rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-2 h-2 bg-primary-blue rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-2 h-2 bg-primary-teal rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
               <span className="text-xs font-medium ml-2">Please wait while we analyse the sitemap</span>
             </div>

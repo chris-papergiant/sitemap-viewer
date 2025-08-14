@@ -76,7 +76,7 @@ const ColumnsView: React.FC<ColumnsViewProps> = ({ data, searchQuery }) => {
   };
 
   return (
-    <div className="bg-white flex flex-col h-[600px]">
+    <div className="bg-white flex flex-col h-full min-h-[500px]">
       {/* Breadcrumb */}
       <div className="border-b border-gray-200 px-6 py-4">
         <div className="flex items-center space-x-1 text-sm">
@@ -116,16 +116,19 @@ const ColumnsView: React.FC<ColumnsViewProps> = ({ data, searchQuery }) => {
                       key={itemIndex}
                       onClick={() => handleItemClick(columnIndex, itemIndex)}
                       className={`
-                        px-4 py-2 cursor-pointer border-b border-gray-100
-                        ${isSelected ? 'bg-blue-50 border-l-2 border-l-blue-500' : 'hover:bg-gray-50'}
+                        px-4 py-2 cursor-pointer border-b border-gray-100 relative
+                        ${isSelected ? 'bg-primary-pink-50' : 'hover:bg-gray-50'}
                         ${!matches ? 'opacity-50' : ''}
                         ${matches && searchQuery ? 'bg-yellow-50' : ''}
                       `}
                     >
+                      {isSelected && (
+                        <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-primary-pink" />
+                      )}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2 min-w-0">
                           {hasChildren ? (
-                            <Folder className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                            <Folder className="w-4 h-4 text-primary-pink flex-shrink-0" />
                           ) : (
                             <File className="w-4 h-4 text-gray-400 flex-shrink-0" />
                           )}

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Globe, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 interface SitemapFetcherProps {
   onFetch: (url: string) => void;
@@ -9,7 +9,6 @@ interface SitemapFetcherProps {
 const SitemapFetcher: React.FC<SitemapFetcherProps> = ({ onFetch, isLoading }) => {
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
-  const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   
   // Example URLs for better UX
@@ -72,31 +71,13 @@ const SitemapFetcher: React.FC<SitemapFetcherProps> = ({ onFetch, isLoading }) =
   };
 
   return (
-    <section className="w-full max-w-2xl mx-auto" aria-label="Website URL input">
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
-        <div className="text-center mb-6">
-          <div className="w-12 h-12 bg-blue rounded-xl flex items-center justify-center mx-auto mb-4">
-            <Globe className="h-6 w-6 text-white" aria-hidden="true" />
-          </div>
-          <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-Explore Your Website
-          </h2>
-          <p className="text-gray-600">
-            Enter any website URL and we'll automatically find and visualise your website structure.
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <label 
-              htmlFor="sitemap-url" 
-              className="block text-sm font-semibold text-gray-900"
-            >
-Website URL
-            </label>
+    <section className="w-full max-w-3xl mx-auto" aria-label="Website URL input">
+      <div className="card p-12">
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <div className="space-y-3">
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400" aria-hidden="true" />
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-neutral-400" aria-hidden="true" />
               </div>
               <input
                 ref={inputRef}
@@ -104,14 +85,10 @@ Website URL
                 id="sitemap-url"
                 value={url}
                 onChange={handleInputChange}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                placeholder="Enter website URL (e.g., example.com)"
-                className={`
-                  block w-full rounded-xl border-2 bg-white pl-10 pr-4 py-4 text-gray-900 placeholder-gray-400 transition-all duration-200 focus:ring-0 focus:outline-none
-                  ${isFocused ? 'border-blue' : 'border-gray-200 hover:border-gray-300'}
-                  ${error ? 'border-error' : ''}
-                `}
+                placeholder="Enter website URL (e.g., papergiant.net)"
+                className={`input input-lg pl-12 ${
+                  error ? 'border-error' : ''
+                }`}
                 disabled={isLoading}
                 aria-describedby={error ? 'url-error' : 'url-help'}
                 aria-invalid={!!error}
@@ -122,12 +99,12 @@ Website URL
             {error && (
               <div 
                 id="url-error" 
-                className="flex items-start space-x-2 text-sm text-error-700 mt-2"
+                className="flex items-start space-x-2 text-sm text-error mt-3 p-3 bg-error-50 rounded-lg border border-error-200"
                 role="alert"
                 aria-live="polite"
               >
                 <svg 
-                  className="h-4 w-4 text-error-500 mt-0.5 flex-shrink-0" 
+                  className="h-4 w-4 text-error mt-0.5 flex-shrink-0" 
                   fill="currentColor" 
                   viewBox="0 0 20 20"
                   aria-hidden="true"
@@ -138,57 +115,62 @@ Website URL
                     clipRule="evenodd" 
                   />
                 </svg>
-                <span>{error}</span>
+                <span className="font-body">{error}</span>
               </div>
             )}
-            
-            <div id="url-help" className="text-xs text-gray-500 mt-1">
-We'll automatically find your sitemap
-            </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={isLoading || !url.trim()}
-            className="bg-blue text-white px-6 py-4 rounded-xl font-semibold hover:bg-blue/90 transition-colors duration-200 focus:outline-none focus:ring-4 focus:ring-blue/20 w-full disabled:opacity-50"
-            aria-describedby="submit-help"
-          >
-            {isLoading ? (
-              <>
-                <svg 
-                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" 
-                  fill="none" 
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <circle 
-                    className="opacity-25" 
-                    cx="12" 
-                    cy="12" 
-                    r="10" 
-                    stroke="currentColor" 
-                    strokeWidth="4"
-                  />
-                  <path 
-                    className="opacity-75" 
-                    fill="currentColor" 
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-Exploring your site...
-              </>
-            ) : (
-              'Explore Site'
-            )}
-          </button>
-          
-          <div id="submit-help" className="text-xs text-gray-500 text-center">
-            We'll find and explore your website structure
+          <div style={{ background: '#000000', borderRadius: '0', width: '100%' }}>
+            <button
+              type="submit"
+              disabled={isLoading || !url.trim()}
+              style={{
+                background: '#000000',
+                backgroundColor: '#000000',
+                backgroundImage: 'none',
+                color: '#ffffff',
+                border: 'none',
+                outline: 'none',
+                borderRadius: '0',
+                padding: '1rem 2rem',
+                fontSize: '1.125rem',
+                fontWeight: '700',
+                minHeight: '3.25rem',
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: isLoading || !url.trim() ? 'not-allowed' : 'pointer',
+                opacity: 1,
+                transition: 'all 0.3s ease',
+                WebkitAppearance: 'none',
+                MozAppearance: 'none',
+                appearance: 'none',
+                boxShadow: 'none'
+              }}
+              onMouseEnter={(e) => {
+                if (!isLoading && url.trim()) {
+                  e.currentTarget.style.background = '#333333';
+                  e.currentTarget.style.backgroundColor = '#333333';
+                  e.currentTarget.parentElement.style.background = '#333333';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#000000';
+                e.currentTarget.style.backgroundColor = '#000000';
+                e.currentTarget.parentElement.style.background = '#000000';
+              }}
+              aria-describedby="submit-help"
+            >
+              <span style={{ color: '#ffffff', fontSize: 'inherit', fontWeight: 'inherit', opacity: 1, textShadow: 'none' }}>
+                {isLoading ? 'Visualising your sitemap...' : 'Visualise Sitemap'}
+              </span>
+            </button>
           </div>
         </form>
 
-        <div className="mt-6">
-          <div className="text-sm text-gray-500 mb-3">Suggestions:</div>
+        <div className="mt-8 pt-8 border-t border-neutral-200">
+          <div className="text-sm text-neutral-600 font-body mb-4">Try these examples:</div>
           <div className="flex flex-wrap gap-2">
             {exampleUrls.map((example, index) => (
               <button
@@ -196,8 +178,28 @@ Exploring your site...
                 type="button"
                 onClick={() => handleExampleClick(example)}
                 disabled={isLoading}
-                className="text-xs px-3 py-1.5 bg-gray-100 hover:bg-primary-100 text-gray-600 hover:text-primary-700 rounded-full transition-colors duration-200"
                 aria-label={`Try example URL: ${example}`}
+                style={{
+                  padding: '0.5rem 1rem',
+                  fontSize: '0.875rem',
+                  backgroundColor: 'transparent',
+                  color: '#DB1B5C',
+                  border: '1px solid #DB1B5C',
+                  borderRadius: '9999px',
+                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                  opacity: isLoading ? 0.6 : 1,
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isLoading) {
+                    e.currentTarget.style.backgroundColor = '#DB1B5C';
+                    e.currentTarget.style.color = '#ffffff';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = '#DB1B5C';
+                }}
               >
                 {example}
               </button>

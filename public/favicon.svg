@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- White background with rounded corners -->
+  <rect x="0" y="0" width="64" height="64" rx="8" ry="8" fill="white"/>
+  
+  <!-- Pink sitemap design -->
+  <!-- Badge -->
+  <rect x="4" y="4" width="56" height="56" rx="14" ry="14"
+        fill="none" stroke="#DB1B5C" stroke-width="2.5"
+        stroke-linejoin="round"/>
+
+  <!-- Connections -->
+  <path d="M32 24v8M32 32h-12M32 32h12M20 32v8M44 32v8"
+        fill="none" stroke="#DB1B5C" stroke-width="2.5"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Nodes -->
+  <circle cx="32" cy="20" r="3" fill="#DB1B5C"/>
+  <circle cx="20" cy="44" r="3" fill="#DB1B5C"/>
+  <circle cx="44" cy="44" r="3" fill="#DB1B5C"/>
+</svg>

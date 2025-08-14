@@ -43,7 +43,7 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
       label: 'Explorer',
       icon: <FolderTreeIcon className="h-4 w-4" />,
       description: 'Tree view with folders',
-      color: 'blue'
+      color: 'pink'
     },
     {
       type: 'columns',
@@ -57,7 +57,7 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
       label: 'Graph',
       icon: <NetworkIcon className="h-4 w-4" />,
       description: 'Visual tree diagram',
-      color: 'blue'
+      color: 'teal'
     }
   ];
   
@@ -77,7 +77,7 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
 
   return (
     <div 
-      className="bg-white border-b border-gray-100"
+      className="bg-white border-b border-primary-pink-100"
       aria-label="View controls"
       role="region"
     >
@@ -85,7 +85,7 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           {/* Clean tab-style view switcher */}
           <div className="flex items-center gap-4">
-            <div className="flex bg-gray-100 rounded-xl p-1">
+            <div className="flex bg-gray-100 rounded-full p-1">
               {views.map((view) => {
                 const isActive = currentView === view.type;
                 
@@ -93,21 +93,23 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
                   <button
                     key={view.type}
                     onClick={() => handleViewChange(view.type)}
-                    className={`
-                      flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm
-                      transition-all duration-200
-                      ${isActive 
-                        ? 'bg-white text-gray-900 shadow-sm' 
-                        : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
-                      }
-                    `}
                     role="tab"
                     aria-selected={isActive}
                     aria-label={`${view.label} view`}
                     title={view.description}
+                    className={`
+                      flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium
+                      transition-all duration-200
+                      ${isActive 
+                        ? 'bg-black text-white shadow-sm' 
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+                      }
+                    `}
                   >
-                    {view.icon}
-                    <span>{view.label}</span>
+                    {React.cloneElement(view.icon as React.ReactElement, {
+                      className: `h-4 w-4 ${isActive ? 'text-white' : ''}`
+                    })}
+                    <span className={isActive ? 'text-white' : ''}>{view.label}</span>
                   </button>
                 );
               })}
@@ -115,7 +117,7 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
             
             {/* URL count badge */}
             <div className="flex items-center">
-              <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-medium">
+              <span className="bg-primary-pink text-white px-4 py-2 rounded-full text-sm font-semibold">
                 {urlCount.toLocaleString()} URLs
               </span>
             </div>
@@ -138,17 +140,17 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
                   }}
                   placeholder="Filter URLs..."
                   className="pl-9 pr-8 py-2 w-48 sm:w-56 text-sm bg-gray-50 border border-gray-200 
-                    rounded-xl placeholder-gray-400 text-gray-900
-                    focus:outline-none focus:ring-2 focus:ring-blue/20 focus:border-blue transition-all"
+                    rounded-full placeholder-gray-400 text-gray-900
+                    focus:outline-none focus:ring-2 focus:ring-primary-pink/20 focus:border-primary-pink transition-all"
                   aria-label="Search URLs"
                 />
                 {localSearchQuery && (
                   <button
                     onClick={handleClearSearch}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 hover:bg-gray-200 rounded transition-colors"
                     aria-label="Clear search"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full transition-colors"
                   >
-                    <X className="h-3.5 w-3.5 text-gray-500 hover:text-gray-700" />
+                    <X className="h-3.5 w-3.5 text-gray-500" />
                   </button>
                 )}
               </div>

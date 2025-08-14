@@ -1,92 +1,293 @@
+/* Import button system first */
+@import './button-system.css';
+@import './button-themes.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  /* Paper Giant Typography - Load fonts */
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  
   body {
     margin: 0;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-      sans-serif;
+    font-family: 'America', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background: #F8FAFC;
+    background: #FFFFFF; /* Paper Giant's clean white background */
+    color: #292A2C; /* Paper Giant's charcoal text */
     min-height: 100vh;
+    font-size: 16px;
+    line-height: 1.5;
+    letter-spacing: 0;
+    /* Subtle vibrant accent for energy */
+    accent-color: #DB1B5C;
   }
   
   * {
     scroll-behavior: smooth;
   }
+
+  /* Paper Giant heading hierarchy */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sectra', Georgia, 'Times New Roman', serif;
+    font-weight: 400;
+    color: #292A2C;
+    letter-spacing: -0.025em;
+  }
+  
+  /* Override for dark sections */
+  .section-tertiary h1,
+  .section-tertiary h2,
+  .section-tertiary h3,
+  .section-tertiary h4,
+  .section-tertiary h5,
+  .section-tertiary h6 {
+    color: #ffffff !important;
+  }
+
+  h1 {
+    font-size: 3.375rem; /* 54px - Paper Giant's hero size */
+    line-height: 3.75rem; /* 60px */
+    letter-spacing: -0.031em; /* Paper Giant's specific spacing */
+  }
+
+  h2 {
+    font-size: 2.25rem; /* 36px */
+    line-height: 2.5rem; /* 40px */
+    letter-spacing: -0.02em;
+  }
+
+  h3 {
+    font-size: 1.5rem; /* 24px */
+    line-height: 2rem; /* 32px */
+    letter-spacing: -0.015em;
+  }
+
+  /* Paper Giant body text */
+  p, li, span {
+    font-family: 'America', 'Inter', system-ui, sans-serif;
+    color: #292A2C;
+  }
+
+  /* Vibrant link styling with Paper Giant pink */
+  a {
+    color: inherit;
+    text-decoration: none;
+    transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+    border-bottom: 1px solid transparent;
+  }
+
+  a:hover {
+    color: #DB1B5C; /* Paper Giant signature pink */
+    border-bottom-color: rgba(219, 27, 92, 0.3);
+  }
+  
+  a:focus {
+    outline: 2px solid #DB1B5C;
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
 }
 
 @layer components {
-  /* Clean Lorikeet CX Button System */
-  .btn {
-    @apply inline-flex items-center justify-center px-6 py-3 border border-transparent text-sm font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-4 disabled:opacity-50 disabled:cursor-not-allowed;
-  }
+  /* Legacy button classes for backward compatibility - will be removed in future version */
+  /* Use the new Button component instead: import { Button } from './components/ui/Button' */
   
-  .btn-primary {
-    @apply bg-blue text-white hover:bg-blue/90 focus:ring-blue/20;
-  }
-  
-  .btn-secondary {
-    @apply bg-white text-gray-700 border-2 border-gray-200 hover:border-gray-300 focus:ring-blue/20;
-  }
-  
-  .btn-ghost {
-    @apply text-gray-600 hover:text-blue hover:bg-gray-50 focus:ring-blue/20;
-  }
-  
-  .btn-success {
-    @apply bg-success-500 text-white hover:bg-success-500/90 focus:ring-success-500/20;
-  }
-  
-  .btn-lg {
-    @apply px-8 py-4 text-base rounded-2xl;
-  }
-  
-  .btn-xl {
-    @apply px-12 py-5 text-lg rounded-2xl font-bold;
-  }
-  
-  /* Clean Input System */
+  /* Paper Giant Input System - Professional Forms */
   .input {
-    @apply block w-full rounded-xl border-2 border-gray-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-400 transition-all duration-200 focus:border-blue focus:ring-0 focus:outline-none hover:border-gray-300;
+    @apply block w-full font-body bg-white px-4 py-3 text-primary-charcoal placeholder-neutral-500 transition-all duration-300 focus:outline-none;
+    border: 1px solid #E0E0E0;
+    border-radius: 0.375rem; /* 6px - subtle rounding */
+  }
+  
+  .input:hover {
+    border-color: #BDBDBD;
+  }
+  
+  .input:focus {
+    border-color: #DB1B5C;
+    box-shadow: 0 0 0 2px rgba(219, 27, 92, 0.1);
   }
   
   .input-lg {
-    @apply px-6 py-4 text-lg rounded-2xl;
+    @apply px-6 py-4 text-lg;
+    border-radius: 0.5rem; /* 8px */
   }
   
-  /* Clean Card System */
+  /* Paper Giant Card System - Clean and Professional */
   .card {
-    @apply bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200;
+    @apply bg-white transition-all duration-300;
+    border-radius: 0.5rem; /* 8px - Paper Giant's card radius */
+    border: 1px solid #F5F5F5;
+    box-shadow: 0 2px 8px 0 rgb(0 0 0 / 0.08);
+  }
+  
+  .card:hover {
+    box-shadow: 0 4px 12px 0 rgb(0 0 0 / 0.1);
   }
   
   .card-elevated {
-    @apply bg-white rounded-2xl border border-gray-200 shadow-lg transition-all duration-200;
+    @apply bg-white;
+    border-radius: 0.5rem;
+    border: 1px solid #EEEEEE;
+    box-shadow: 0 8px 24px 0 rgb(0 0 0 / 0.12);
   }
   
-  .card-gradient {
-    @apply bg-white rounded-2xl border border-gray-100 shadow-sm transition-all duration-200;
+  .card-minimal {
+    @apply bg-white border-0;
+    border-radius: 0.5rem;
+    box-shadow: none;
   }
   
-  /* Focus Ring System */
+  /* Paper Giant Vibrant Focus Ring System */
   .focus-ring {
-    @apply focus:outline-none focus:ring-4 focus:ring-blue/20 focus:border-blue;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary-pink focus:ring-opacity-30;
   }
   
-  /* Skip Navigation */
+  /* Professional Skip Navigation */
   .skip-nav {
-    @apply absolute -top-40 left-6 z-50 bg-blue text-white px-4 py-2 rounded-lg font-medium focus:top-6 transition-all duration-200;
+    @apply absolute -top-40 left-6 z-50 bg-primary-pink text-white px-4 py-2 font-body font-medium transition-all duration-200;
+    border-radius: 0.375rem;
+    box-shadow: 0 4px 14px 0 rgba(219, 27, 92, 0.25);
   }
   
-  /* Loading Shimmer Effect */
+  .skip-nav:focus {
+    @apply top-6;
+  }
+
+  /* Paper Giant Section System */
+  .section {
+    @apply transition-all duration-500;
+    padding: 6rem 2.5rem; /* 96px vertical, 40px horizontal - Paper Giant spacing */
+  }
+  
+  .section-lg {
+    padding: 8rem 2.5rem; /* 128px vertical, 40px horizontal */
+  }
+  
+  .section-primary {
+    background-color: #FFFFFF !important;
+    color: #292A2C !important;
+  }
+  
+  .section-secondary {
+    background-color: #FDF2F8 !important;
+    color: #292A2C !important;
+  }
+  
+  .section-tertiary {
+    background-color: #292A2C !important;
+    color: #ffffff !important;
+  }
+  
+  .section-tertiary * {
+    color: #ffffff !important;
+    opacity: 1 !important;
+  }
+  
+  .section-tertiary h1,
+  .section-tertiary h2,
+  .section-tertiary h3,
+  .section-tertiary h4,
+  .section-tertiary h5,
+  .section-tertiary h6 {
+    color: #ffffff !important;
+  }
+  
+  .section-quaternary {
+    background-color: #F0FDFA !important;
+    color: #292A2C !important;
+  }
+
+  /* Paper Giant Typography Utilities */
+  .text-display {
+    @apply font-serif text-5xl;
+  }
+  
+  .text-section-title {
+    @apply font-serif text-4xl;
+  }
+  
+  .section-tertiary .text-section-title {
+    color: #ffffff !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: block !important;
+  }
+  
+  /* Force visibility for the specific heading */
+  .section-tertiary h2.text-section-title {
+    color: #ffffff !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    background: none !important;
+    text-shadow: none !important;
+  }
+  
+  .text-card-title {
+    @apply font-serif text-2xl;
+  }
+  
+  .text-body {
+    @apply font-body text-base leading-relaxed;
+  }
+  
+  .text-body-large {
+    @apply font-body text-lg leading-relaxed;
+  }
+
+  /* Professional Status Indicators */
+  .status-indicator {
+    @apply inline-flex items-center px-3 py-1 text-sm font-body font-medium;
+    border-radius: 9999px;
+  }
+  
+  .status-active {
+    @apply status-indicator bg-success-50 text-success-600;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+  }
+  
+  .status-processing {
+    @apply status-indicator bg-primary-blue-50 text-primary-blue-600;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+  }
+  
+  .status-error {
+    @apply status-indicator bg-error-50 text-error-600;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+  }
+  
+  .status-neutral {
+    @apply status-indicator bg-neutral-100 text-neutral-700;
+  }
+  
+  .status-vibrant {
+    background: linear-gradient(135deg, rgba(219, 27, 92, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+    @apply status-indicator text-primary-pink;
+    border: 1px solid rgba(219, 27, 92, 0.2);
+  }
+  
+  /* Vibrant Loading Shimmer Effect */
   .loading-shimmer {
     background: linear-gradient(
       90deg,
       transparent 0%,
-      rgba(255, 255, 255, 0.6) 50%,
+      rgba(219, 27, 92, 0.15) 25%,
+      rgba(59, 130, 246, 0.15) 50%,
+      rgba(20, 184, 166, 0.15) 75%,
+      transparent 100%
+    );
+    background-size: 400px 100%;
+    animation: shimmer 2.5s infinite;
+  }
+  
+  .loading-shimmer-subtle {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(219, 27, 92, 0.08) 50%,
       transparent 100%
     );
     background-size: 200px 100%;
@@ -105,7 +306,8 @@
   }
   
   .status-badge-primary {
-    @apply status-badge bg-blue text-white;
+    @apply status-badge bg-primary-pink text-white;
+    box-shadow: 0 2px 4px 0 rgba(219, 27, 92, 0.25);
   }
   
   .status-badge-success {
@@ -128,54 +330,81 @@
   .delay-300 { animation-delay: 300ms; }
   .delay-500 { animation-delay: 500ms; }
   
-  /* Simple text gradient */
+  /* Vibrant text gradients */
   .text-gradient {
-    @apply text-blue;
+    background: linear-gradient(135deg, #DB1B5C 0%, #3B82F6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
   
-  .text-gradient-rainbow {
-    @apply text-blue;
+  .text-gradient-vibrant {
+    background: linear-gradient(135deg, #DB1B5C 0%, #A855F7 25%, #3B82F6 50%, #14B8A6 75%, #22C55E 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .text-gradient-pink {
+    background: linear-gradient(135deg, #DB1B5C 0%, #F472B6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 }
 
-/* D3/Graph specific styles */
+/* EMERGENCY FIX - Force white text on dark sections */
+.section-tertiary,
+.section-tertiary *,
+.section-tertiary h1,
+.section-tertiary h2,
+.section-tertiary h3,
+.section-tertiary p,
+.section-tertiary div,
+.section-tertiary span {
+  color: white !important;
+  opacity: 1 !important;
+}
+
+/* D3/Graph specific styles - Vibrant Paper Giant colors */
 .node circle {
   cursor: pointer;
-  stroke: #4348DC;
+  stroke: #DB1B5C; /* Paper Giant signature pink */
   stroke-width: 2px;
-  filter: drop-shadow(0 2px 4px rgba(67, 72, 220, 0.2));
+  filter: drop-shadow(0 2px 4px rgba(219, 27, 92, 0.25));
   transition: all 0.2s ease;
 }
 
 .node circle:hover {
-  stroke: #4348DC;
+  stroke: #BE185D; /* Darker pink on hover */
   stroke-width: 3px;
-  filter: drop-shadow(0 4px 8px rgba(67, 72, 220, 0.3));
+  filter: drop-shadow(0 4px 8px rgba(219, 27, 92, 0.4));
+  transform: scale(1.05);
 }
 
 .node text {
   font-size: 11px;
   cursor: pointer;
   font-weight: 500;
-  fill: #334155;
+  fill: #292A2C; /* Paper Giant charcoal */
   transition: all 0.2s ease;
 }
 
 .node text:hover {
-  fill: #4348DC;
+  fill: #DB1B5C; /* Pink text on hover */
   font-weight: 600;
 }
 
 .link {
   fill: none;
-  stroke: #cbd5e1;
+  stroke: #14B8A6; /* Vibrant teal for connections */
   stroke-width: 2px;
-  opacity: 0.8;
+  opacity: 0.6;
   transition: all 0.2s ease;
 }
 
 .link:hover {
-  stroke: #94a3b8;
+  stroke: #3B82F6; /* Electric blue on hover */
   stroke-width: 3px;
   opacity: 1;
 }
@@ -185,14 +414,14 @@
   text-align: left;
   padding: 12px 16px;
   font-size: 12px;
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
+  background: linear-gradient(135deg, rgba(219, 27, 92, 0.95) 0%, rgba(59, 130, 246, 0.95) 100%);
   color: white;
   border-radius: 12px;
   pointer-events: none;
   z-index: 1000;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 40px rgba(219, 27, 92, 0.3);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   font-weight: 500;
   line-height: 1.5;
   max-width: 280px;
@@ -211,22 +440,72 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%);
+  background: linear-gradient(135deg, rgba(219, 27, 92, 0.6) 0%, rgba(59, 130, 246, 0.6) 100%);
   border-radius: 4px;
   transition: background 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+  background: linear-gradient(135deg, rgba(219, 27, 92, 0.8) 0%, rgba(59, 130, 246, 0.8) 100%);
 }
 
-/* Selection styling */
+/* Vibrant selection styling */
 ::selection {
-  background: rgba(14, 165, 233, 0.2);
-  color: #0c4a6e;
+  background: rgba(219, 27, 92, 0.2);
+  color: #BE185D;
 }
 
 ::-moz-selection {
-  background: rgba(14, 165, 233, 0.2);
-  color: #0c4a6e;
+  background: rgba(219, 27, 92, 0.2);
+  color: #BE185D;
+}
+
+/* NUCLEAR OPTION - Last resort to force white text */
+.section.section-tertiary h2 {
+  color: #ffffff !important;
+  opacity: 1 !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-fill-color: #ffffff !important;
+}
+
+.section.section-tertiary * {
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+/* OVERRIDE ALL BUTTON STYLING - SIMPLIFIED APPROACH */
+.btn.btn-primary,
+.btn-primary,
+button.btn-primary,
+.btn.btn-primary:disabled,
+.btn-primary:disabled,
+button.btn-primary:disabled {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border: none !important;
+  padding: 1rem 2rem !important;
+  font-size: 1.125rem !important;
+  font-weight: 700 !important;
+  border-radius: 0 !important;
+  transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1) !important;
+  min-height: 3.25rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+}
+
+.btn.btn-primary:hover:not(:disabled),
+.btn-primary:hover:not(:disabled),
+button.btn-primary:hover:not(:disabled) {
+  background-color: #333333 !important;
+  color: #ffffff !important;
+}
+
+.btn.btn-primary:disabled,
+.btn-primary:disabled,
+button.btn-primary:disabled {
+  cursor: not-allowed !important;
+  opacity: 0.6 !important;
 }

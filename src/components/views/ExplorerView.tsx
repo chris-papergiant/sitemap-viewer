@@ -56,7 +56,7 @@ const TreeItem: React.FC<TreeItemProps> = ({
 
   const getPriorityColor = (priority?: number) => {
     if (!priority) return 'text-gray-400';
-    if (priority >= 0.8) return 'text-red-500';
+    if (priority >= 0.8) return 'text-primary-pink';
     if (priority >= 0.5) return 'text-yellow-500';
     return 'text-green-500';
   };
@@ -80,8 +80,8 @@ const TreeItem: React.FC<TreeItemProps> = ({
       <div
         className={`
           flex items-center py-2 px-3 hover:bg-gray-50 cursor-pointer rounded-lg transition-all duration-200
-          focus:outline-none focus:ring-2 focus:ring-blue/20 focus:ring-offset-1
-          ${matchesSearch && searchQuery ? 'bg-blue/5 border border-blue/20' : ''}
+          focus:outline-none focus:ring-2 focus:ring-primary-pink/20 focus:ring-offset-1
+          ${matchesSearch && searchQuery ? 'bg-primary-pink/5 border border-primary-pink/20' : ''}
         `}
         style={{ paddingLeft: `${Math.max(16, indent + 16)}px` }}
         onClick={handleToggle}
@@ -98,9 +98,9 @@ const TreeItem: React.FC<TreeItemProps> = ({
           {hasChildren ? (
             <button className="p-0.5 mr-1">
               {isExpanded ? (
-                <ChevronDown className="w-4 h-4 text-gray-600" />
+                <ChevronDown className="w-4 h-4 text-primary-pink" />
               ) : (
-                <ChevronRight className="w-4 h-4 text-gray-600" />
+                <ChevronRight className="w-4 h-4 text-primary-pink" />
               )}
             </button>
           ) : (
@@ -263,9 +263,9 @@ const ExplorerView: React.FC<ExplorerViewProps> = ({ data, searchQuery }) => {
     >
       {/* Search Results Panel */}
       {searchQuery && (
-        <div className="border-b border-gray-200 bg-blue/5 px-6 py-4">
+        <div className="border-b border-gray-200 bg-primary-pink/5 px-6 py-4">
           <div className="flex items-center gap-2 mb-3">
-            <Search className="w-4 h-4 text-blue" />
+            <Search className="w-4 h-4 text-primary-pink" />
             <h3 className="text-sm font-semibold text-gray-900">
               {searchResults.length > 0 
                 ? `Found ${searchResults.length} matching page${searchResults.length !== 1 ? 's' : ''}`
@@ -294,7 +294,7 @@ const ExplorerView: React.FC<ExplorerViewProps> = ({ data, searchQuery }) => {
                   <div className="flex items-center gap-2 ml-3">
                     <button
                       onClick={() => navigateToResult(path)}
-                      className="bg-blue text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-blue/90 transition-colors"
+                      className="bg-primary-pink text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-primary-pink/90 transition-colors"
                       title="Navigate to this item in the tree"
                     >
                       Go to
@@ -353,7 +353,7 @@ const ExplorerView: React.FC<ExplorerViewProps> = ({ data, searchQuery }) => {
       </div>
       
       <div 
-        className="p-6 max-h-[70vh] overflow-y-auto focus:outline-none"
+        className="p-6 h-full min-h-[400px] max-h-[600px] overflow-y-auto focus:outline-none"
         tabIndex={-1}
         role="tree"
         aria-label="Sitemap structure tree"
