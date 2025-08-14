@@ -435,38 +435,24 @@ function App() {
                   </div>
                   <div>
                     <h3 className="text-card-title font-serif text-error mb-4">
-                      {error.includes('blocking automated crawlers') ? 
-                        'Website Restricts Automated Access' : 
-                        'No sitemap available'}
+                      No sitemap found
                     </h3>
                     <div className="card-minimal p-4 bg-error-50 border border-error-200">
-                      <p className="text-body text-error-600 font-semibold mb-2">
-                        {error.includes('blocking automated crawlers') ? 
-                          '🛡️ Security Restriction Detected' : 
-                          'This website doesn\'t have a sitemap we can access'}
+                      <p className="text-body text-error-600">
+                        {error.includes('blocking automated crawlers') || error.includes('403 Forbidden') ? 
+                          'This website is blocking access to its sitemap. This is common for government and banking sites.' : 
+                          'This website doesn\'t have a sitemap we can access, or it\'s blocking automated requests.'}
                       </p>
-                      <p className="text-sm text-error-600">{error}</p>
                     </div>
                     <div className="mt-4 space-y-2">
                       <p className="text-sm text-neutral-700 font-body">
                         <strong>What you can do:</strong>
                       </p>
                       <ul className="text-sm text-neutral-600 font-body space-y-1 ml-4">
-                        {error.includes('blocking automated crawlers') ? (
-                          <>
-                            <li>• Try a different website (most commercial sites work fine)</li>
-                            <li>• Government and banking sites often block crawlers</li>
-                            <li>• Consider using a server-side crawler for restricted sites</li>
-                            <li>• Contact the site owner for sitemap access if needed</li>
-                          </>
-                        ) : (
-                          <>
-                            <li>• Check if the website URL is correct</li>
-                            <li>• Try adding or removing 'www' from the URL</li>
-                            <li>• Some websites block automated access to their sitemaps</li>
-                            <li>• The website may not have a public sitemap.xml file</li>
-                          </>
-                        )}
+                        <li>• Check if the website URL is correct</li>
+                        <li>• Try adding or removing 'www' from the URL</li>
+                        <li>• Some websites block automated access to their sitemaps</li>
+                        <li>• The website may not have a public sitemap.xml file</li>
                       </ul>
                     </div>
                     
@@ -478,11 +464,8 @@ function App() {
                             <p className="text-sm font-semibold text-gray-900 mb-1">
                               Alternative: Crawl the website
                             </p>
-                            <p className="text-xs text-gray-600 mb-2">
-                              We can try to discover pages by crawling the website directly. This will take longer but may work when sitemaps aren't available.
-                            </p>
-                            <p className="text-xs text-gray-500 mb-3">
-                              Note: Some websites block crawling. Government sites (.gov.au) may have additional restrictions.
+                            <p className="text-xs text-gray-600 mb-3">
+                              We can try to discover pages by crawling the website directly. This takes longer but may work when sitemaps aren't available.
                             </p>
                             <button
                               onClick={() => handleStartCrawl(currentUrl)}
