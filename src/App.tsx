@@ -713,7 +713,17 @@ function App() {
                       Site Overview
                     </h2>
                     <p className="text-gray-600 max-w-2xl mx-auto">
-                      Key metrics and insights from your website's structure
+                      Key metrics and insights from {currentUrl ? (() => {
+                        try {
+                          const url = currentUrl.startsWith('http') ? currentUrl : `https://${currentUrl}`;
+                          const domain = new URL(url).hostname;
+                          return domain.endsWith('.com') || domain.endsWith('.org') || domain.endsWith('.net') || domain.endsWith('.io') || domain.endsWith('.au') || domain.endsWith('.gov') || domain.endsWith('.edu') 
+                            ? `${domain}'s structure`
+                            : `the structure of ${domain}`;
+                        } catch {
+                          return 'your website\'s structure';
+                        }
+                      })() : 'your website\'s structure'}
                     </p>
                   </div>
                   <SitemapStats treeData={treeData} urls={urls} />
@@ -771,7 +781,17 @@ function App() {
                       Site Overview
                     </h2>
                     <p className="text-gray-600 max-w-2xl mx-auto">
-                      Key metrics and insights from your website's structure
+                      Key metrics and insights from {currentUrl ? (() => {
+                        try {
+                          const url = currentUrl.startsWith('http') ? currentUrl : `https://${currentUrl}`;
+                          const domain = new URL(url).hostname;
+                          return domain.endsWith('.com') || domain.endsWith('.org') || domain.endsWith('.net') || domain.endsWith('.io') || domain.endsWith('.au') || domain.endsWith('.gov') || domain.endsWith('.edu') 
+                            ? `${domain}'s structure`
+                            : `the structure of ${domain}`;
+                        } catch {
+                          return 'your website\'s structure';
+                        }
+                      })() : 'your website\'s structure'}
                     </p>
                   </div>
                   <SitemapStats treeData={treeData} urls={urls} />
