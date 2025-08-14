@@ -170,7 +170,14 @@ export const fetchSitemap = async (url: string, onProgress?: (message: string) =
     }
   }
   
-  throw new Error(`No sitemap found. Checked robots.txt and tried ${sitemapCandidates.length - 1} common locations. Last error: ${lastError?.message || 'Unknown error'}`);
+  // Provide more specific error message based on the failure type
+  if (lastError?.message.includes('403') || lastError?.message.includes('Forbidden')) {
+    throw new Error(`No sitemap found. The website is blocking access to its sitemap (403 Forbidden). This is common for government and banking sites.`);
+  } else if (lastError?.message.includes('404') || lastError?.message.includes('Not Found')) {
+    throw new Error(`No sitemap found at any standard location. The website may not have a public sitemap.xml file.`);
+  } else {
+    throw new Error(`No sitemap found. Checked robots.txt and tried ${sitemapCandidates.length - 1} common locations. ${lastError?.message || 'Unable to access the site.'}`);
+  }
 };
 
 // Helper function to try multiple CORS proxies
@@ -195,8 +202,19 @@ const fetchWithProxies = async (url: string, corsProxies: ((url: string) => stri
       const text = await response.text();
       
       // Check if we got valid XML (skip this check for robots.txt)
-      if (!url.endsWith('/robots.txt') && !text.includes('<?xml') && !text.includes('<urlset') && !text.includes('<sitemapindex')) {
-        throw new Error('Response does not appear to be a valid sitemap XML');
+      if (!url.endsWith('/robots.txt')) {
+        // Check for common error page indicators
+        if (text.includes('404') || text.includes('Not Found') || 
+            text.includes('403') || text.includes('Forbidden') ||
+            text.includes('Error') || text.includes('error')) {
+          console.log('Response appears to be an error page, not XML');
+          throw new Error('Response appears to be an error page, not a valid sitemap');
+        }
+        
+        if (!text.includes('<?xml') && !text.includes('<urlset') && !text.includes('<sitemapindex')) {
+          console.log('Response does not contain XML markers. First 200 chars:', text.substring(0, 200));
+          throw new Error('Response does not appear to be a valid sitemap XML');
+        }
       }
       
       console.log('Successfully fetched content, length:', text.length);

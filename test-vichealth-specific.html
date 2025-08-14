@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VicHealth.vic.gov.au Specific Debug</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; }
+        h2 { color: #666; font-size: 18px; }
+        pre {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #DB1B5C;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #c11850; }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        .warning { color: orange; font-weight: bold; }
+        .info { color: blue; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 VicHealth.vic.gov.au Debug Analysis</h1>
+        <p>This test specifically analyzes why vichealth.vic.gov.au isn't working with our crawler.</p>
+    </div>
+
+    <div class="container">
+        <h2>Step 1: Check All Proxies</h2>
+        <button onclick="testAllProxies()">Test All CORS Proxies</button>
+        <div id="proxyResults"></div>
+    </div>
+
+    <div class="container">
+        <h2>Step 2: Direct Fetch Test (Will Fail - Expected)</h2>
+        <button onclick="testDirect()">Test Direct Fetch</button>
+        <div id="directResults"></div>
+    </div>
+
+    <div class="container">
+        <h2>Step 3: Alternative Approaches</h2>
+        <button onclick="testAlternatives()">Test Alternative Methods</button>
+        <div id="altResults"></div>
+    </div>
+
+    <script>
+        const PROXIES = [
+            { name: 'cors.sh', url: 'https://proxy.cors.sh/', encode: false },
+            { name: 'codetabs', url: 'https://api.codetabs.com/v1/proxy?quest=', encode: true },
+            { name: 'corsproxy.org', url: 'https://corsproxy.org/?', encode: true },
+            { name: 'cors-anywhere', url: 'https://cors-anywhere.herokuapp.com/', encode: false },
+            { name: 'allorigins', url: 'https://api.allorigins.win/raw?url=', encode: true }
+        ];
+
+        const TEST_URLS = [
+            'https://vichealth.vic.gov.au',
+            'https://vichealth.vic.gov.au/robots.txt',
+            'https://vichealth.vic.gov.au/sitemap.xml'
+        ];
+
+        async function testAllProxies() {
+            const resultsDiv = document.getElementById('proxyResults');
+            resultsDiv.innerHTML = '<h3>Testing all proxies...</h3>';
+            
+            for (const testUrl of TEST_URLS) {
+                resultsDiv.innerHTML += `<h4>Testing: ${testUrl}</h4>`;
+                
+                for (const proxy of PROXIES) {
+                    const proxyUrl = proxy.encode ? 
+                        proxy.url + encodeURIComponent(testUrl) : 
+                        proxy.url + testUrl;
+                    
+                    try {
+                        console.log(`Testing ${proxy.name} with ${testUrl}`);
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 5000);
+                        
+                        const response = await fetch(proxyUrl, {
+                            signal: controller.signal,
+                            headers: {
+                                'Accept': 'text/html, application/xml, text/xml, */*',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            mode: 'cors'
+                        });
+                        
+                        clearTimeout(timeoutId);
+                        
+                        const text = await response.text();
+                        const status = response.status;
+                        
+                        // Analyze the response
+                        let analysis = '';
+                        if (status === 200) {
+                            if (text.includes('<?xml')) {
+                                analysis = '✅ Valid XML sitemap';
+                            } else if (text.includes('User-agent')) {
+                                analysis = '✅ Valid robots.txt';
+                            } else if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+                                // Check for error indicators
+                                if (text.includes('404') || text.includes('Not Found')) {
+                                    analysis = '⚠️ Got HTML: 404 Page';
+                                } else if (text.includes('403') || text.includes('Forbidden')) {
+                                    analysis = '⚠️ Got HTML: 403 Forbidden Page';
+                                } else if (text.includes('vichealth')) {
+                                    analysis = '✅ Got VicHealth HTML content';
+                                } else {
+                                    analysis = '⚠️ Got HTML: Unknown page';
+                                }
+                            } else {
+                                analysis = '❓ Unknown content type';
+                            }
+                        } else {
+                            analysis = `❌ HTTP ${status}`;
+                        }
+                        
+                        resultsDiv.innerHTML += `
+                            <div class="${status === 200 ? 'success' : 'error'}">
+                                ${proxy.name}: ${analysis} (${text.length} bytes)
+                            </div>
+                        `;
+                        
+                        if (status === 200 && text.length > 0) {
+                            console.log(`${proxy.name} response preview:`, text.substring(0, 200));
+                        }
+                        
+                    } catch (error) {
+                        resultsDiv.innerHTML += `
+                            <div class="error">
+                                ${proxy.name}: ❌ ${error.name === 'AbortError' ? 'Timeout (5s)' : error.message}
+                            </div>
+                        `;
+                        console.error(`${proxy.name} error:`, error);
+                    }
+                }
+                
+                resultsDiv.innerHTML += '<hr>';
+            }
+            
+            resultsDiv.innerHTML += '<p class="info">✅ Check browser console for detailed responses</p>';
+        }
+
+        async function testDirect() {
+            const resultsDiv = document.getElementById('directResults');
+            resultsDiv.innerHTML = '<h3>Testing direct fetch (expected to fail due to CORS)...</h3>';
+            
+            try {
+                const response = await fetch('https://vichealth.vic.gov.au');
+                resultsDiv.innerHTML += '<p class="warning">⚠️ Unexpected: Direct fetch succeeded (shouldn\'t happen from browser)</p>';
+            } catch (error) {
+                resultsDiv.innerHTML += `<p class="success">✅ Expected CORS error: ${error.message}</p>`;
+                resultsDiv.innerHTML += '<p>This confirms we need a CORS proxy to access this site.</p>';
+            }
+        }
+
+        async function testAlternatives() {
+            const resultsDiv = document.getElementById('altResults');
+            resultsDiv.innerHTML = '<h3>Testing alternative approaches...</h3>';
+            
+            // Test 1: Try with different Accept headers
+            resultsDiv.innerHTML += '<h4>Test 1: Different Accept Headers</h4>';
+            const headers = [
+                { 'Accept': '*/*' },
+                { 'Accept': 'text/html' },
+                { 'Accept': 'application/xml' },
+                { 'Accept': 'text/plain' }
+            ];
+            
+            for (const header of headers) {
+                try {
+                    const response = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://vichealth.vic.gov.au'), {
+                        headers: header
+                    });
+                    const text = await response.text();
+                    resultsDiv.innerHTML += `<div class="info">Accept: ${Object.values(header)[0]} - ${response.status} (${text.length} bytes)</div>`;
+                } catch (error) {
+                    resultsDiv.innerHTML += `<div class="error">Accept: ${Object.values(header)[0]} - Failed</div>`;
+                }
+            }
+            
+            // Test 2: Check what allorigins returns for the main page
+            resultsDiv.innerHTML += '<h4>Test 2: Analyzing AllOrigins Response</h4>';
+            try {
+                const response = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://vichealth.vic.gov.au'));
+                const text = await response.text();
+                
+                // Check for various indicators
+                const checks = {
+                    'Contains "vichealth"': text.toLowerCase().includes('vichealth'),
+                    'Is HTML': text.includes('<html') || text.includes('<!DOCTYPE'),
+                    'Has title tag': text.includes('<title'),
+                    'Has meta tags': text.includes('<meta'),
+                    'Contains error': text.includes('error') || text.includes('Error'),
+                    'Contains 404': text.includes('404'),
+                    'Contains 403': text.includes('403'),
+                    'Has JavaScript': text.includes('<script'),
+                    'Has navigation': text.includes('<nav') || text.includes('menu')
+                };
+                
+                resultsDiv.innerHTML += '<pre>' + JSON.stringify(checks, null, 2) + '</pre>';
+                
+                // Show title if present
+                const titleMatch = text.match(/<title[^>]*>([^<]+)<\/title>/i);
+                if (titleMatch) {
+                    resultsDiv.innerHTML += `<p class="info">Page Title: "${titleMatch[1]}"</p>`;
+                }
+                
+            } catch (error) {
+                resultsDiv.innerHTML += `<div class="error">Failed to analyze: ${error.message}</div>`;
+            }
+            
+            // Test 3: Summary
+            resultsDiv.innerHTML += `
+                <h4>Summary & Recommendations</h4>
+                <ul>
+                    <li>✅ api.allorigins.win can fetch the HTML content</li>
+                    <li>❌ The site doesn't have an accessible sitemap.xml</li>
+                    <li>💡 Progressive crawling using allorigins proxy might work</li>
+                    <li>⚠️ Government sites often have rate limiting - crawl slowly</li>
+                    <li>📝 Consider implementing a delay between requests (1-2 seconds)</li>
+                </ul>
+            `;
+        }
+
+        // Auto-run first test on load
+        window.onload = function() {
+            console.log('VicHealth Debug Tool Loaded');
+            console.log('Click the buttons to run tests');
+        };
+    </script>
+</body>
+</html>

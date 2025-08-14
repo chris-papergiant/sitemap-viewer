@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { track } from '@vercel/analytics';
 import { FolderTreeIcon, ColumnsIcon, NetworkIcon, Search, X } from 'lucide-react';
 
 export type ViewType = 'explorer' | 'columns' | 'graph';
@@ -25,11 +26,20 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
     const timer = setTimeout(() => {
       if (onSearch && localSearchQuery !== searchQuery) {
         onSearch(localSearchQuery);
+        
+        // Track search event (only if query is not empty)
+        if (localSearchQuery.trim()) {
+          track('search_performed', {
+            query: localSearchQuery,
+            urlCount: urlCount,
+            timestamp: new Date().toISOString()
+          });
+        }
       }
     }, 300);
     
     return () => clearTimeout(timer);
-  }, [localSearchQuery, onSearch]);
+  }, [localSearchQuery, onSearch, urlCount]);
   
   const views: { 
     type: ViewType; 
@@ -70,6 +80,12 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
     setLocalSearchQuery('');
     if (onSearch) onSearch('');
     searchInputRef.current?.focus();
+    
+    // Track search clear event
+    track('search_cleared', {
+      urlCount: urlCount,
+      timestamp: new Date().toISOString()
+    });
   };
 
   // Find active view (currently unused but may be needed later)

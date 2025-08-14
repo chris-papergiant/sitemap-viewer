@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AllOrigins Debug Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        pre {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Debug: What is api.allorigins.win returning?</h1>
+    
+    <button onclick="testRobots()">Test robots.txt</button>
+    <button onclick="testSitemap()">Test sitemap.xml</button>
+    <button onclick="testHomepage()">Test Homepage</button>
+    
+    <h2>Results:</h2>
+    <div id="results"></div>
+
+    <script>
+        async function testUrl(url, description) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML += `<h3>Testing: ${description}</h3>`;
+            
+            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+            
+            console.group(`Testing ${description}`);
+            console.log('Target URL:', url);
+            console.log('Proxy URL:', proxyUrl);
+            
+            try {
+                const response = await fetch(proxyUrl);
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+                
+                const text = await response.text();
+                
+                console.log('Response length:', text.length);
+                console.log('Full response:', text);
+                
+                // Check what type of content we got
+                const isXML = text.includes('<?xml') || text.includes('<urlset') || text.includes('<sitemapindex');
+                const isHTML = text.includes('<!DOCTYPE') || text.includes('<html') || text.includes('<HTML');
+                const isRobotsTxt = text.includes('User-agent') || text.includes('Sitemap:');
+                const is404 = text.includes('404') || text.includes('Not Found');
+                const is403 = text.includes('403') || text.includes('Forbidden');
+                
+                resultsDiv.innerHTML += `<pre>
+Status: ${response.status} ${response.statusText}
+Content Length: ${text.length} bytes
+Content Type Detection:
+- Is XML: ${isXML}
+- Is HTML: ${isHTML}
+- Is robots.txt: ${isRobotsTxt}
+- Contains 404: ${is404}
+- Contains 403: ${is403}
+
+First 500 characters:
+${text.substring(0, 500)}
+
+Last 500 characters:
+${text.substring(Math.max(0, text.length - 500))}
+</pre>`;
+                
+                if (response.ok) {
+                    resultsDiv.innerHTML += `<p class="success">✅ Request succeeded</p>`;
+                } else {
+                    resultsDiv.innerHTML += `<p class="error">❌ HTTP Error: ${response.status}</p>`;
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                resultsDiv.innerHTML += `<pre class="error">Error: ${error.message}</pre>`;
+            }
+            
+            console.groupEnd();
+        }
+        
+        function testRobots() {
+            testUrl('https://vichealth.vic.gov.au/robots.txt', 'robots.txt');
+        }
+        
+        function testSitemap() {
+            testUrl('https://vichealth.vic.gov.au/sitemap.xml', 'sitemap.xml');
+        }
+        
+        function testHomepage() {
+            testUrl('https://vichealth.vic.gov.au', 'Homepage');
+        }
+    </script>
+</body>
+</html>

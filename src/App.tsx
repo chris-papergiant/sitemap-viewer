@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { track } from '@vercel/analytics';
 import SitemapFetcher from './components/SitemapFetcher';
 import SitemapStats from './components/SitemapStats';
 import ProgressBar from './components/ProgressBar';
@@ -61,6 +62,13 @@ function App() {
     setIsVisualisationMode(true);
     setCurrentUrl(url);
     isCompleteRef.current = false;
+
+    // Track sitemap search event
+    track('sitemap_search', {
+      url: url,
+      domain: url.includes('://') ? new URL(url.startsWith('http') ? url : `https://${url}`).hostname : url,
+      timestamp: new Date().toISOString()
+    });
 
     try {
       console.log('Starting sitemap fetch for:', url);
@@ -125,6 +133,13 @@ function App() {
           setProgressSubMessage(`Successfully visualised ${allUrls.length} URLs`);
           isCompleteRef.current = true;
           
+          // Track successful sitemap fetch
+          track('sitemap_success', {
+            domain: new URL(url.startsWith('http') ? url : `https://${url}`).hostname,
+            urlCount: allUrls.length,
+            type: 'sitemap_index'
+          });
+          
           // Update URL parameters for sharing
           updateUrlParams(url, currentView);
         } else {
@@ -149,6 +164,13 @@ function App() {
         setProgressSubMessage(`Successfully visualised ${parsed.urls.length} URLs`);
         isCompleteRef.current = true;
         
+        // Track successful sitemap fetch
+        track('sitemap_success', {
+          domain: new URL(url.startsWith('http') ? url : `https://${url}`).hostname,
+          urlCount: parsed.urls.length,
+          type: 'sitemap'
+        });
+        
         // Update URL parameters for sharing
         updateUrlParams(url, currentView);
       } else {
@@ -159,6 +181,13 @@ function App() {
       setError(err instanceof Error ? err.message : 'Failed to fetch or parse sitemap');
       setShowCrawlOption(true); // Show crawl option when sitemap fails
       setCurrentUrl(url); // Store URL for potential crawling
+      
+      // Track sitemap failure
+      track('sitemap_failed', {
+        domain: url.includes('://') ? new URL(url.startsWith('http') ? url : `https://${url}`).hostname : url,
+        error: err instanceof Error ? err.message : 'Unknown error',
+        type: 'sitemap'
+      });
     } finally {
       // Keep the progress bar visible for a moment at 100%
       if (isCompleteRef.current) {
@@ -175,14 +204,43 @@ function App() {
   };
 
   const handleStartCrawl = async (url: string) => {
+    console.group('%c🚀 APP: Starting Crawl', 'color: #FF6B6B; font-weight: bold; font-size: 14px');
+    console.log('Input URL:', url);
+    console.log('Current state:', {
+      error,
+      isCrawling,
+      isVisualisationMode,
+      treeData: treeData ? 'exists' : 'null'
+    });
+    
+    // Track crawler start event
+    track('crawler_started', {
+      domain: url.includes('://') ? new URL(url.startsWith('http') ? url : `https://${url}`).hostname : url,
+      timestamp: new Date().toISOString()
+    });
+    
     setError(null);
     setShowCrawlOption(false);
     setIsCrawling(true);
     setIsVisualisationMode(true);
     setCurrentUrl(url);
     
-    // Initialize crawler
+    // Initialize crawler with detailed logging
+    console.log('%c📊 Initializing crawler with callback...', 'color: #4ECDC4');
+    let callbackCount = 0;
+    
     crawlerRef.current = new ProgressiveCrawler((state) => {
+      callbackCount++;
+      console.log(`%c📨 Callback #${callbackCount}`, 'color: #95E77E', {
+        status: state.status,
+        discovered: state.discovered.size,
+        queue: state.queue.length,
+        processed: state.stats.pagesProcessed,
+        found: state.stats.pagesFound,
+        failed: state.stats.failedPages.length,
+        tree: state.tree ? `${state.tree.name} with ${state.tree.children?.length || 0} children` : 'null'
+      });
+      
       setCrawlState(state);
       setTreeData(state.tree);
       
@@ -198,20 +256,62 @@ function App() {
       
       // If crawling is complete or errored, update UI
       if (state.status === 'complete' || state.status === 'error') {
+        console.log(`%c🏁 Crawl ${state.status}`, state.status === 'complete' ? 'color: #52C41A' : 'color: #FF4D4F', {
+          totalDiscovered: state.discovered.size,
+          totalProcessed: state.stats.pagesProcessed,
+          totalFailed: state.stats.failedPages.length,
+          duration: `${(Date.now() - state.stats.startTime) / 1000}s`
+        });
         setIsCrawling(false);
         if (state.status === 'complete') {
           setError(null); // Clear any previous errors
+          
+          // Track successful crawl
+          track('crawler_success', {
+            domain: url.includes('://') ? new URL(url.startsWith('http') ? url : `https://${url}`).hostname : url,
+            pagesDiscovered: state.discovered.size,
+            pagesProcessed: state.stats.pagesProcessed,
+            duration: Math.round((Date.now() - state.stats.startTime) / 1000)
+          });
         }
       }
     });
     
     try {
+      console.log('%c🏃 Starting crawl...', 'color: #FFA500');
       await crawlerRef.current.startCrawl(url);
+      console.log('%c✅ Crawl started successfully', 'color: #52C41A');
     } catch (error) {
-      console.error('Crawl error:', error);
-      setError('Failed to crawl website. The site may be blocking automated access, or CORS proxies may be unavailable. Please check the browser console for details.');
+      console.error('%c❌ Crawl error:', 'color: #FF4D4F', error);
+      console.log('Error details:', {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : 'No stack trace'
+      });
+      
+      // Determine the type of error for better messaging
+      const errorMessage = error instanceof Error ? error.message.toLowerCase() : '';
+      let userMessage = '';
+      
+      if (errorMessage.includes('all proxies failed') || errorMessage.includes('403') || errorMessage.includes('forbidden')) {
+        userMessage = 'This website is blocking automated crawlers. The site has security measures that prevent browser-based tools from accessing it. This is common for government sites and some corporate websites.';
+      } else if (errorMessage.includes('network') || errorMessage.includes('failed to fetch')) {
+        userMessage = 'Unable to connect to the website. The site may be temporarily unavailable or blocking automated access.';
+      } else {
+        userMessage = 'Failed to crawl website. The site may be blocking automated access, or CORS proxies may be unavailable.';
+      }
+      
+      setError(userMessage);
       setIsCrawling(false);
       setShowCrawlOption(false);
+      
+      // Track crawler failure
+      track('crawler_failed', {
+        domain: url.includes('://') ? new URL(url.startsWith('http') ? url : `https://${url}`).hostname : url,
+        error: errorMessage,
+        type: errorMessage.includes('403') ? 'blocked' : 'network'
+      });
+    } finally {
+      console.groupEnd();
     }
   };
 
@@ -239,7 +339,19 @@ function App() {
 
   // Handle view changes and update URL
   const handleViewChange = (view: ViewType) => {
+    const previousView = currentView;
     setCurrentView(view);
+    
+    // Track view change event
+    if (treeData && previousView !== view) {
+      track('view_changed', {
+        from: previousView,
+        to: view,
+        domain: currentUrl.includes('://') ? new URL(currentUrl.startsWith('http') ? currentUrl : `https://${currentUrl}`).hostname : currentUrl,
+        urlCount: urls.length
+      });
+    }
+    
     if (currentUrl) {
       updateUrlParams(currentUrl, view);
     }
@@ -323,10 +435,16 @@ function App() {
                   </div>
                   <div>
                     <h3 className="text-card-title font-serif text-error mb-4">
-                      No sitemap available
+                      {error.includes('blocking automated crawlers') ? 
+                        'Website Restricts Automated Access' : 
+                        'No sitemap available'}
                     </h3>
                     <div className="card-minimal p-4 bg-error-50 border border-error-200">
-                      <p className="text-body text-error-600 font-semibold mb-2">This website doesn't have a sitemap we can access</p>
+                      <p className="text-body text-error-600 font-semibold mb-2">
+                        {error.includes('blocking automated crawlers') ? 
+                          '🛡️ Security Restriction Detected' : 
+                          'This website doesn\'t have a sitemap we can access'}
+                      </p>
                       <p className="text-sm text-error-600">{error}</p>
                     </div>
                     <div className="mt-4 space-y-2">
@@ -334,10 +452,21 @@ function App() {
                         <strong>What you can do:</strong>
                       </p>
                       <ul className="text-sm text-neutral-600 font-body space-y-1 ml-4">
-                        <li>• Check if the website URL is correct</li>
-                        <li>• Try adding or removing 'www' from the URL</li>
-                        <li>• Some websites block automated access to their sitemaps</li>
-                        <li>• The website may not have a public sitemap.xml file</li>
+                        {error.includes('blocking automated crawlers') ? (
+                          <>
+                            <li>• Try a different website (most commercial sites work fine)</li>
+                            <li>• Government and banking sites often block crawlers</li>
+                            <li>• Consider using a server-side crawler for restricted sites</li>
+                            <li>• Contact the site owner for sitemap access if needed</li>
+                          </>
+                        ) : (
+                          <>
+                            <li>• Check if the website URL is correct</li>
+                            <li>• Try adding or removing 'www' from the URL</li>
+                            <li>• Some websites block automated access to their sitemaps</li>
+                            <li>• The website may not have a public sitemap.xml file</li>
+                          </>
+                        )}
                       </ul>
                     </div>
                     
@@ -491,6 +620,15 @@ function App() {
                         } catch (e) {
                           siteName = 'sitemap';
                         }
+                        
+                        // Track CSV download event
+                        track('csv_downloaded', {
+                          domain: siteName,
+                          urlCount: urls.length,
+                          source: isCrawling ? 'crawler' : 'sitemap',
+                          timestamp: new Date().toISOString()
+                        });
+                        
                         exportTreeToCSV(treeData, siteName);
                       }
                     }}

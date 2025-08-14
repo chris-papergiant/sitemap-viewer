@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Crawler Debug Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+        h2 {
+            color: #666;
+            font-size: 18px;
+            margin-top: 20px;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #DB1B5C;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        button:hover {
+            background: #c11850;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        .status.success {
+            background: #e7f5e7;
+            border: 1px solid #52c41a;
+        }
+        .status.error {
+            background: #ffe6e6;
+            border: 1px solid #ff4d4f;
+        }
+        .status.warning {
+            background: #fff7e6;
+            border: 1px solid #faad14;
+        }
+        .results {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 15px;
+            background: #fafafa;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        .proxy-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .proxy-result.success {
+            background: #f0fff0;
+            border: 1px solid #90ee90;
+        }
+        .proxy-result.error {
+            background: #fff0f0;
+            border: 1px solid #ffb0b0;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .stat-item {
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: #999;
+            text-transform: uppercase;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Crawler Debug & Testing Tool</h1>
+        <p>Test CORS proxies and debug the progressive crawler with detailed logging.</p>
+    </div>
+
+    <div class="container">
+        <h2>Test CORS Proxies</h2>
+        <div class="controls">
+            <input type="text" id="proxyTestUrl" placeholder="Enter URL to test (e.g., https://vichealth.vic.gov.au)" value="https://vichealth.vic.gov.au">
+            <button onclick="testAllProxies()">Test All Proxies</button>
+            <button onclick="clearProxyResults()">Clear Results</button>
+        </div>
+        <div id="proxyStatus" class="status" style="display: none;"></div>
+        <div id="proxyResults" class="results" style="display: none;"></div>
+    </div>
+
+    <div class="container">
+        <h2>Test Crawler</h2>
+        <div class="controls">
+            <input type="text" id="crawlUrl" placeholder="URL to crawl" value="https://vichealth.vic.gov.au">
+            <input type="number" id="maxDepth" placeholder="Max depth" value="2" min="1" max="5" style="flex: 0 0 100px;">
+            <input type="number" id="maxPages" placeholder="Max pages" value="10" min="1" max="100" style="flex: 0 0 100px;">
+            <button onclick="startTestCrawl()">Start Crawl</button>
+            <button onclick="stopCrawl()" id="stopBtn" disabled>Stop</button>
+        </div>
+        <div id="crawlStatus" class="status" style="display: none;"></div>
+        <div id="crawlStats" class="stats-grid" style="display: none;">
+            <div class="stat-item">
+                <div class="stat-label">Pages Found</div>
+                <div class="stat-value" id="pagesFound">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Processed</div>
+                <div class="stat-value" id="pagesProcessed">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Queue Size</div>
+                <div class="stat-value" id="queueSize">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Failed</div>
+                <div class="stat-value" id="failedPages">0</div>
+            </div>
+        </div>
+        <div id="crawlResults" class="results" style="display: none;"></div>
+    </div>
+
+    <script>
+        // CORS proxy configuration
+        const CORS_PROXIES = [
+            { name: 'cors.sh', url: 'https://proxy.cors.sh/' },
+            { name: 'codetabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
+            { name: 'cors-anywhere', url: 'https://cors-anywhere.herokuapp.com/' }
+        ];
+
+        let currentCrawler = null;
+
+        async function testAllProxies() {
+            const url = document.getElementById('proxyTestUrl').value;
+            if (!url) {
+                alert('Please enter a URL to test');
+                return;
+            }
+
+            const statusDiv = document.getElementById('proxyStatus');
+            const resultsDiv = document.getElementById('proxyResults');
+            
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'status';
+            statusDiv.textContent = `Testing ${CORS_PROXIES.length} proxies with ${url}...`;
+            
+            resultsDiv.style.display = 'block';
+            resultsDiv.innerHTML = '';
+
+            console.group('🧪 Testing CORS Proxies');
+            console.log('Target URL:', url);
+
+            for (const proxy of CORS_PROXIES) {
+                const proxyUrl = proxy.name === 'codetabs' ? 
+                    proxy.url + encodeURIComponent(url) : 
+                    proxy.url + url;
+                
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'proxy-result';
+                
+                console.group(`Testing ${proxy.name}...`);
+                console.log('Proxy URL:', proxyUrl);
+                
+                try {
+                    const startTime = Date.now();
+                    const response = await fetch(proxyUrl, {
+                        method: 'GET',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Accept': 'text/html'
+                        },
+                        mode: 'cors'
+                    });
+                    
+                    const duration = Date.now() - startTime;
+                    
+                    if (response.ok) {
+                        const text = await response.text();
+                        resultDiv.className = 'proxy-result success';
+                        resultDiv.innerHTML = `
+✅ <strong>${proxy.name}</strong> - SUCCESS
+Status: ${response.status} ${response.statusText}
+Duration: ${duration}ms
+Content Length: ${text.length} bytes
+Headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)}
+First 200 chars: ${text.substring(0, 200)}...
+                        `;
+                        console.log(`✅ ${proxy.name} SUCCESS:`, {
+                            status: response.status,
+                            duration: duration + 'ms',
+                            contentLength: text.length
+                        });
+                    } else {
+                        resultDiv.className = 'proxy-result error';
+                        resultDiv.innerHTML = `
+❌ <strong>${proxy.name}</strong> - HTTP ERROR
+Status: ${response.status} ${response.statusText}
+Duration: ${duration}ms
+                        `;
+                        console.error(`❌ ${proxy.name} HTTP ERROR:`, response.status, response.statusText);
+                    }
+                } catch (error) {
+                    resultDiv.className = 'proxy-result error';
+                    resultDiv.innerHTML = `
+❌ <strong>${proxy.name}</strong> - FAILED
+Error: ${error.message}
+Type: ${error.name}
+                    `;
+                    console.error(`❌ ${proxy.name} FAILED:`, error);
+                }
+                
+                resultsDiv.appendChild(resultDiv);
+                console.groupEnd();
+            }
+            
+            statusDiv.className = 'status success';
+            statusDiv.textContent = 'Proxy testing complete! Check results below and browser console for details.';
+            
+            console.groupEnd();
+        }
+
+        function clearProxyResults() {
+            document.getElementById('proxyStatus').style.display = 'none';
+            document.getElementById('proxyResults').style.display = 'none';
+            document.getElementById('proxyResults').innerHTML = '';
+        }
+
+        async function startTestCrawl() {
+            const url = document.getElementById('crawlUrl').value;
+            const maxDepth = parseInt(document.getElementById('maxDepth').value);
+            const maxPages = parseInt(document.getElementById('maxPages').value);
+            
+            if (!url) {
+                alert('Please enter a URL to crawl');
+                return;
+            }
+
+            const statusDiv = document.getElementById('crawlStatus');
+            const statsDiv = document.getElementById('crawlStats');
+            const resultsDiv = document.getElementById('crawlResults');
+            
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'status';
+            statusDiv.textContent = `Starting crawl of ${url}...`;
+            
+            statsDiv.style.display = 'grid';
+            resultsDiv.style.display = 'block';
+            resultsDiv.innerHTML = 'Initializing crawler...\n';
+
+            document.getElementById('stopBtn').disabled = false;
+
+            console.group('🚀 Starting Test Crawl');
+            console.log('Configuration:', { url, maxDepth, maxPages });
+
+            // Note: This would need the actual ProgressiveCrawler class to be loaded
+            // For now, we'll simulate with the debug tools if available
+            if (typeof CrawlerDebug !== 'undefined') {
+                try {
+                    const result = await CrawlerDebug.testCrawl(url, maxDepth, maxPages);
+                    if (result) {
+                        statusDiv.className = 'status success';
+                        statusDiv.textContent = 'Crawl completed successfully!';
+                        updateStats(result);
+                        resultsDiv.innerHTML += '\n✅ Crawl completed!\n';
+                        resultsDiv.innerHTML += JSON.stringify(result, null, 2);
+                    } else {
+                        statusDiv.className = 'status error';
+                        statusDiv.textContent = 'Crawl failed - check console for details';
+                    }
+                } catch (error) {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = `Crawl error: ${error.message}`;
+                    resultsDiv.innerHTML += `\n❌ Error: ${error.message}\n`;
+                }
+            } else {
+                statusDiv.className = 'status warning';
+                statusDiv.textContent = 'Crawler not loaded. Open the main app and try again, or check console.';
+                resultsDiv.innerHTML = 'CrawlerDebug tools not available. Please load the main application first.';
+            }
+
+            document.getElementById('stopBtn').disabled = true;
+            console.groupEnd();
+        }
+
+        function stopCrawl() {
+            if (currentCrawler) {
+                currentCrawler.stop();
+                document.getElementById('crawlStatus').textContent = 'Crawl stopped by user';
+                document.getElementById('stopBtn').disabled = true;
+            }
+        }
+
+        function updateStats(state) {
+            document.getElementById('pagesFound').textContent = state.stats.pagesFound;
+            document.getElementById('pagesProcessed').textContent = state.stats.pagesProcessed;
+            document.getElementById('queueSize').textContent = state.queue.length;
+            document.getElementById('failedPages').textContent = state.stats.failedPages.length;
+        }
+
+        // Auto-focus first input
+        window.onload = function() {
+            document.getElementById('proxyTestUrl').focus();
+            
+            // Check if CrawlerDebug is available
+            if (typeof CrawlerDebug !== 'undefined') {
+                console.log('✅ CrawlerDebug tools are loaded!');
+            } else {
+                console.log('⚠️ CrawlerDebug tools not found. Load the main app first.');
+            }
+        };
+    </script>
+</body>
+</html>

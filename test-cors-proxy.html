@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CORS Proxy Test</title>
+</head>
+<body>
+    <h1>CORS Proxy Test</h1>
+    <button onclick="testProxies()">Test All Proxies</button>
+    <div id="results"></div>
+
+    <script>
+    async function testProxies() {
+        const testUrl = 'https://vichealth.vic.gov.au';
+        const proxies = [
+            { name: 'cors.sh', url: 'https://proxy.cors.sh/' },
+            { name: 'codetabs', url: 'https://api.codetabs.com/v1/proxy?quest=' },
+            { name: 'cors-anywhere', url: 'https://cors-anywhere.herokuapp.com/' }
+        ];
+        
+        const results = document.getElementById('results');
+        results.innerHTML = '<h2>Testing proxies...</h2>';
+        
+        for (const proxy of proxies) {
+            const proxyUrl = proxy.name === 'codetabs' ? 
+                proxy.url + encodeURIComponent(testUrl) : 
+                proxy.url + testUrl;
+                
+            try {
+                console.log(`Testing ${proxy.name}: ${proxyUrl}`);
+                const response = await fetch(proxyUrl, {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                const status = response.status;
+                const statusText = response.statusText;
+                
+                results.innerHTML += `
+                    <div style="margin: 10px; padding: 10px; border: 1px solid ${status === 200 ? 'green' : 'red'}">
+                        <strong>${proxy.name}:</strong> ${status} ${statusText}
+                        ${status === 200 ? '✅ Working' : '❌ Failed'}
+                    </div>
+                `;
+                
+                if (status === 200) {
+                    const text = await response.text();
+                    console.log(`${proxy.name} response length:`, text.length);
+                }
+            } catch (error) {
+                console.error(`${proxy.name} error:`, error);
+                results.innerHTML += `
+                    <div style="margin: 10px; padding: 10px; border: 1px solid red">
+                        <strong>${proxy.name}:</strong> ❌ Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+    }
+    </script>
+</body>
+</html>
