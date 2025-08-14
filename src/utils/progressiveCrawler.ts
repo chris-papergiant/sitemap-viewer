@@ -284,18 +284,23 @@ class ProgressiveCrawler {
         const html = await response.text();
         
         // Log what we received for debugging
-        this.log('debug', `Received HTML from ${proxyName}:`, {
+        this.log('info', `📊 Received HTML from ${proxyName}:`, {
           length: html.length,
           first100: html.substring(0, 100)
         });
         
-        // Check if we got a valid HTML page (not a proxy error page)
+        // Check if we got a valid HTML page (not a proxy error page or Cloudflare challenge)
         // Real pages are usually at least 1KB, and have proper HTML structure
+        const isCloudflareChallenge = html.includes('Just a moment...') || 
+                                      html.includes('Checking your browser') ||
+                                      html.includes('cf-browser-verification');
+        
         const isValidHTML = html.length > 1000 && 
                            (html.includes('<!DOCTYPE') || html.includes('<html')) &&
                            (html.includes('</html>') || html.includes('</body>')) &&
                            !html.includes('Moved Permanently') && 
-                           !html.includes('Moved Temporarily');
+                           !html.includes('Moved Temporarily') &&
+                           !isCloudflareChallenge;
         
         if (!isValidHTML) {
           this.log('warn', `❌ Proxy returned invalid/redirect content`, {
@@ -303,6 +308,7 @@ class ProgressiveCrawler {
             hasDoctype: html.includes('<!DOCTYPE'),
             hasHtml: html.includes('<html'),
             hasClosingHtml: html.includes('</html>'),
+            isCloudflare: isCloudflareChallenge,
             firstChars: html.substring(0, 200)
           });
           throw new Error('Proxy returned invalid content');

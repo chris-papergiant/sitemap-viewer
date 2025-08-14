@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Crawler Validation</title>
+</head>
+<body>
+    <h1>Test Crawler Validation</h1>
+    <button onclick="testValidation()">Test Codetabs Response</button>
+    <pre id="result"></pre>
+
+    <script>
+        async function testValidation() {
+            const url = 'https://api.codetabs.com/v1/proxy?quest=https%3A%2F%2Fvichealth.vic.gov.au';
+            
+            try {
+                const response = await fetch(url);
+                const html = await response.text();
+                
+                // Same validation logic as in the crawler
+                const isValidHTML = html.length > 1000 && 
+                                   (html.includes('<!DOCTYPE') || html.includes('<html')) &&
+                                   (html.includes('</html>') || html.includes('</body>')) &&
+                                   !html.includes('Moved Permanently') && 
+                                   !html.includes('Moved Temporarily');
+                
+                const result = {
+                    url: url,
+                    htmlLength: html.length,
+                    htmlContent: html,
+                    isValidHTML: isValidHTML,
+                    hasDoctype: html.includes('<!DOCTYPE'),
+                    hasHtmlTag: html.includes('<html'),
+                    hasClosingHtml: html.includes('</html>'),
+                    hasClosingBody: html.includes('</body>'),
+                    hasMovedPermanently: html.includes('Moved Permanently'),
+                    hasMovedTemporarily: html.includes('Moved Temporarily'),
+                    validation: isValidHTML ? '✅ VALID' : '❌ INVALID - Should be rejected'
+                };
+                
+                document.getElementById('result').textContent = JSON.stringify(result, null, 2);
+                console.log('Validation result:', result);
+                
+            } catch (error) {
+                document.getElementById('result').textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
