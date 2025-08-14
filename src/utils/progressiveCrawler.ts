@@ -282,6 +282,20 @@ class ProgressiveCrawler {
         }
         
         const html = await response.text();
+        
+        // Check if we got a valid HTML page (not a proxy error page)
+        if (html.length < 500 || 
+            html.includes('Moved Permanently') || 
+            html.includes('Moved Temporarily') ||
+            !html.includes('<') || 
+            !html.includes('</')) {
+          this.log('warn', `Proxy returned invalid/redirect content`, {
+            htmlLength: html.length,
+            firstChars: html.substring(0, 200)
+          });
+          throw new Error('Proxy returned invalid content');
+        }
+        
         this.log('info', `✅ Success with ${proxyName}!`, {
           htmlLength: html.length,
           fetchTimeMs: fetchTime,
