@@ -246,28 +246,39 @@ function App() {
                     <div className="bg-error text-white p-3 rounded-lg">
                       <svg 
                         className="h-6 w-6" 
-                        viewBox="0 0 20 20" 
-                        fill="currentColor" 
+                        viewBox="0 0 24 24" 
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
                         aria-hidden="true"
                       >
                         <path 
-                          fillRule="evenodd" 
-                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" 
-                          clipRule="evenodd" 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" 
                         />
                       </svg>
                     </div>
                   </div>
                   <div>
                     <h3 className="text-card-title font-serif text-error mb-4">
-                      Something went wrong
+                      No sitemap available
                     </h3>
                     <div className="card-minimal p-4 bg-error-50 border border-error-200">
-                      <p className="text-body text-error-600">{error}</p>
+                      <p className="text-body text-error-600 font-semibold mb-2">This website doesn't have a sitemap we can access</p>
+                      <p className="text-sm text-error-600">{error}</p>
                     </div>
-                    <p className="text-sm text-neutral-600 font-body mt-4">
-                      Please check the URL and try again, or wait a moment before retrying.
-                    </p>
+                    <div className="mt-4 space-y-2">
+                      <p className="text-sm text-neutral-700 font-body">
+                        <strong>What you can do:</strong>
+                      </p>
+                      <ul className="text-sm text-neutral-600 font-body space-y-1 ml-4">
+                        <li>• Check if the website URL is correct</li>
+                        <li>• Try adding or removing 'www' from the URL</li>
+                        <li>• Some websites block automated access to their sitemaps</li>
+                        <li>• The website may not have a public sitemap.xml file</li>
+                      </ul>
+                    </div>
                     {isVisualisationMode && (
                       <Button
                         variant="secondary"
@@ -281,7 +292,7 @@ function App() {
                         }}
                         className="mt-6"
                       >
-                        Back to Input
+                        Try Another Website
                       </Button>
                     )}
                   </div>
