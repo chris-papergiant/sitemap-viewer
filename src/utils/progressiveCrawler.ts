@@ -1,7 +1,11 @@
 import { TreeNode } from './treeBuilder';
 
-// CORS proxy configuration
-const CORS_PROXY = 'https://corsproxy.io/?';
+// CORS proxy configuration - using multiple proxies as fallbacks
+const CORS_PROXIES = [
+  'https://proxy.cors.sh/',
+  'https://api.codetabs.com/v1/proxy?quest=',
+  'https://cors-anywhere.herokuapp.com/'
+];
 
 export interface CrawlStats {
   pagesFound: number;
@@ -74,6 +78,8 @@ class ProgressiveCrawler {
       this.baseUrl = parsedUrl.origin;
       this.baseDomain = parsedUrl.hostname;
       
+      console.log('Starting crawl for:', this.baseUrl, 'Domain:', this.baseDomain);
+      
       // Initialize tree with domain name
       this.state.tree = {
         name: this.baseDomain,
@@ -93,6 +99,7 @@ class ProgressiveCrawler {
       // Start the crawl loop
       await this.crawlLoop();
     } catch (error) {
+      console.error('Crawl start error:', error);
       this.state.status = 'error';
       this.onProgress(this.state);
       throw error;
@@ -132,6 +139,42 @@ class ProgressiveCrawler {
     }
   }
 
+  private async fetchWithProxy(url: string): Promise<string> {
+    let lastError: Error | null = null;
+    
+    for (const proxy of CORS_PROXIES) {
+      try {
+        console.log(`Trying proxy: ${proxy} for URL: ${url}`);
+        const proxyUrl = proxy.includes('quest=') ? 
+          proxy + encodeURIComponent(url) : 
+          proxy + url;
+          
+        const response = await fetch(proxyUrl, {
+          signal: this.abortController?.signal,
+          headers: {
+            'Accept': 'text/html',
+            'X-Requested-With': 'XMLHttpRequest' // Required for some proxies
+          },
+          mode: 'cors'
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const html = await response.text();
+        console.log(`Successfully fetched ${url} via ${proxy}`);
+        return html;
+      } catch (error) {
+        console.error(`Failed with proxy ${proxy}:`, error);
+        lastError = error as Error;
+        continue; // Try next proxy
+      }
+    }
+    
+    throw lastError || new Error('All proxies failed');
+  }
+
   private async processPage(task: CrawlTask): Promise<void> {
     if (this.state.discovered.has(task.url)) {
       return;
@@ -142,18 +185,7 @@ class ProgressiveCrawler {
     
     try {
       // Fetch the page through CORS proxy
-      const response = await fetch(CORS_PROXY + encodeURIComponent(task.url), {
-        signal: this.abortController?.signal,
-        headers: {
-          'Accept': 'text/html'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      
-      const html = await response.text();
+      const html = await this.fetchWithProxy(task.url);
       
       // Parse links from HTML
       const links = this.extractLinks(html, task.url);

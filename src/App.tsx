@@ -209,8 +209,9 @@ function App() {
       await crawlerRef.current.startCrawl(url);
     } catch (error) {
       console.error('Crawl error:', error);
-      setError('Failed to crawl website. The site may be blocking automated access.');
+      setError('Failed to crawl website. The site may be blocking automated access, or CORS proxies may be unavailable. Please check the browser console for details.');
       setIsCrawling(false);
+      setShowCrawlOption(false);
     }
   };
 
@@ -348,8 +349,11 @@ function App() {
                             <p className="text-sm font-semibold text-gray-900 mb-1">
                               Alternative: Crawl the website
                             </p>
-                            <p className="text-xs text-gray-600 mb-3">
+                            <p className="text-xs text-gray-600 mb-2">
                               We can try to discover pages by crawling the website directly. This will take longer but may work when sitemaps aren't available.
+                            </p>
+                            <p className="text-xs text-gray-500 mb-3">
+                              Note: Some websites block crawling. Government sites (.gov.au) may have additional restrictions.
                             </p>
                             <button
                               onClick={() => handleStartCrawl(currentUrl)}
