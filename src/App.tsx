@@ -373,7 +373,7 @@ function App() {
                     aria-label="Download sitemap as CSV"
                   >
                     <Download className="w-4 h-4" style={{ color: '#ffffff' }} />
-                    <span style={{ color: '#ffffff', opacity: 1 }}>Download Sitemap as CSV</span>
+                    <span style={{ color: '#ffffff', opacity: 1 }}>Download as CSV</span>
                   </button>
                 </div>
               </div>
