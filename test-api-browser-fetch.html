@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Browser Fetch API</title>
+    <style>
+        body { font-family: monospace; padding: 20px; max-width: 1200px; margin: 0 auto; }
+        .test { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background: #d4edda; border-color: #28a745; }
+        .error { background: #f8d7da; border-color: #dc3545; }
+        .pending { background: #fff3cd; border-color: #ffc107; }
+        button { padding: 10px 20px; margin: 5px; font-size: 14px; cursor: pointer; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        pre { white-space: pre-wrap; word-wrap: break-word; background: #f5f5f5; padding: 10px; border-radius: 3px; }
+        input { padding: 8px; width: 400px; margin-right: 10px; }
+        .loading { display: inline-block; margin-left: 10px; }
+        .loading:after {
+            content: ' .';
+            animation: dots 1s steps(5, end) infinite;
+        }
+        @keyframes dots {
+            0%, 20% { content: ' .'; }
+            40% { content: ' ..'; }
+            60% { content: ' ...'; }
+            80%, 100% { content: ' ....'; }
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Browser Fetch API</h1>
+    
+    <p>This tests the server-side browser automation API that bypasses CORS restrictions.</p>
+    
+    <div>
+        <input type="text" id="urlInput" placeholder="Enter URL to fetch" value="https://vichealth.vic.gov.au/sitemap.xml">
+        <button onclick="testFetch('sitemap')">Fetch as Sitemap</button>
+        <button onclick="testFetch('crawler')">Fetch as HTML</button>
+        <button onclick="clearResults()">Clear</button>
+    </div>
+    
+    <h2>Quick Tests:</h2>
+    <div>
+        <button onclick="testSite('https://vichealth.vic.gov.au/sitemap.xml', 'sitemap')">
+            vichealth.vic.gov.au (Previously Blocked)
+        </button>
+        <button onclick="testSite('https://papergiant.net/sitemap.xml', 'sitemap')">
+            papergiant.net
+        </button>
+        <button onclick="testSite('https://portable.com.au/sitemap.xml', 'sitemap')">
+            portable.com.au
+        </button>
+        <button onclick="testSite('https://www.gov.au/sitemap.xml', 'sitemap')">
+            gov.au
+        </button>
+    </div>
+    
+    <div id="results"></div>
+
+    <script>
+        let testCount = 0;
+        
+        async function testFetch(type) {
+            const url = document.getElementById('urlInput').value;
+            if (!url) {
+                alert('Please enter a URL');
+                return;
+            }
+            await testSite(url, type);
+        }
+        
+        async function testSite(url, type = 'sitemap') {
+            const testId = ++testCount;
+            const results = document.getElementById('results');
+            
+            // Create test result div
+            const testDiv = document.createElement('div');
+            testDiv.className = 'test pending';
+            testDiv.id = `test-${testId}`;
+            testDiv.innerHTML = `
+                <h3>Test #${testId}: ${type.toUpperCase()} - ${url}</h3>
+                <p>Status: <span class="loading">Fetching via server-side browser</span></p>
+                <p>Started: ${new Date().toLocaleTimeString()}</p>
+            `;
+            results.insertBefore(testDiv, results.firstChild);
+            
+            const startTime = Date.now();
+            
+            try {
+                console.log(`Testing ${type} fetch for:`, url);
+                
+                // Call the API
+                const response = await fetch('/api/browser-fetch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url, type })
+                });
+                
+                const data = await response.json();
+                const duration = Date.now() - startTime;
+                
+                console.log('API Response:', data);
+                
+                if (data.success) {
+                    testDiv.className = 'test success';
+                    
+                    let contentPreview = '';
+                    if (type === 'sitemap') {
+                        const content = data.content || '';
+                        const hasXML = content.includes('<?xml');
+                        const hasUrlset = content.includes('<urlset') || content.includes('<sitemapindex');
+                        const urlCount = (content.match(/<loc>/g) || []).length;
+                        
+                        contentPreview = `
+                            <p><strong>✅ SUCCESS!</strong></p>
+                            <p>Status: ${data.status || 200}</p>
+                            <p>Duration: ${duration}ms</p>
+                            <p>Content Length: ${content.length} characters</p>
+                            <p>Valid XML: ${hasXML ? '✅' : '❌'}</p>
+                            <p>Valid Sitemap: ${hasUrlset ? '✅' : '❌'}</p>
+                            <p>URLs Found: ${urlCount}</p>
+                            <details>
+                                <summary>Content Preview (first 1000 chars)</summary>
+                                <pre>${escapeHtml(content.substring(0, 1000))}</pre>
+                            </details>
+                        `;
+                    } else {
+                        const html = data.html || '';
+                        contentPreview = `
+                            <p><strong>✅ SUCCESS!</strong></p>
+                            <p>Status: ${data.status || 200}</p>
+                            <p>Duration: ${duration}ms</p>
+                            <p>HTML Length: ${html.length} characters</p>
+                            <p>Has &lt;title&gt;: ${html.includes('<title>') ? '✅' : '❌'}</p>
+                            <details>
+                                <summary>HTML Preview (first 1000 chars)</summary>
+                                <pre>${escapeHtml(html.substring(0, 1000))}</pre>
+                            </details>
+                        `;
+                    }
+                    
+                    testDiv.innerHTML = `
+                        <h3>Test #${testId}: ${type.toUpperCase()} - ${url}</h3>
+                        ${contentPreview}
+                    `;
+                } else {
+                    testDiv.className = 'test error';
+                    testDiv.innerHTML = `
+                        <h3>Test #${testId}: ${type.toUpperCase()} - ${url}</h3>
+                        <p><strong>❌ FAILED</strong></p>
+                        <p>Error: ${data.error}</p>
+                        <p>Status: ${data.status || 'N/A'}</p>
+                        <p>Duration: ${duration}ms</p>
+                    `;
+                }
+            } catch (error) {
+                const duration = Date.now() - startTime;
+                testDiv.className = 'test error';
+                testDiv.innerHTML = `
+                    <h3>Test #${testId}: ${type.toUpperCase()} - ${url}</h3>
+                    <p><strong>❌ API ERROR</strong></p>
+                    <p>Error: ${error.message}</p>
+                    <p>Duration: ${duration}ms</p>
+                    <p>Note: Make sure the API is running (npm run dev or deployed to Vercel)</p>
+                `;
+                console.error('Test failed:', error);
+            }
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            testCount = 0;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Test if API is available
+        fetch('/api/browser-fetch', { method: 'POST' })
+            .then(r => {
+                if (r.status === 400 || r.status === 405) {
+                    console.log('✅ API endpoint is available');
+                }
+            })
+            .catch(() => {
+                console.warn('⚠️ API endpoint not available. You may need to deploy to Vercel or set up local API routes.');
+            });
+    </script>
+</body>
+</html>

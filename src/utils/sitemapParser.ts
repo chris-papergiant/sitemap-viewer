@@ -141,12 +141,12 @@ export const fetchSitemap = async (url: string, onProgress?: (message: string) =
     if (sitemapUrl.endsWith('/robots.txt')) {
       onProgress?.(`Checking robots.txt for sitemap directives...`);
       try {
-        const robotsContent = await fetchWithProxies(sitemapUrl, corsProxies);
+        const robotsContent = await fetchWithProxies(sitemapUrl, corsProxies, onProgress);
         const sitemapMatch = robotsContent.match(/^Sitemap:\s*(.+)$/im);
         if (sitemapMatch && sitemapMatch[1]) {
           const robotsSitemapUrl = sitemapMatch[1].trim();
           onProgress?.(`Found sitemap in robots.txt: ${new URL(robotsSitemapUrl).pathname}`);
-          return await fetchWithProxies(robotsSitemapUrl, corsProxies);
+          return await fetchWithProxies(robotsSitemapUrl, corsProxies, onProgress);
         } else {
           onProgress?.(`No sitemap found in robots.txt, trying common locations...`);
         }
@@ -162,7 +162,7 @@ export const fetchSitemap = async (url: string, onProgress?: (message: string) =
     onProgress?.(`Trying ${locationName}... (${locationIndex}/${sitemapCandidates.length - 1})`);
     
     try {
-      const result = await fetchWithProxies(sitemapUrl, corsProxies);
+      const result = await fetchWithProxies(sitemapUrl, corsProxies, onProgress);
       console.log(`Successfully fetched sitemap from: ${sitemapUrl}`);
       return result;
     } catch (error) {
@@ -183,7 +183,7 @@ export const fetchSitemap = async (url: string, onProgress?: (message: string) =
 };
 
 // Helper function to try multiple CORS proxies
-const fetchWithProxies = async (url: string, corsProxies: ((url: string) => string)[]): Promise<string> => {
+const fetchWithProxies = async (url: string, corsProxies: ((url: string) => string)[], onProgress?: (message: string) => void): Promise<string> => {
   let lastError: Error | null = null;
   
   for (const proxyFn of corsProxies) {
@@ -246,5 +246,41 @@ const fetchWithProxies = async (url: string, corsProxies: ((url: string) => stri
     }
   }
   
-  throw lastError || new Error('All CORS proxies failed');
+  // NEW: Try server-side browser fetch as fallback
+  console.log('All CORS proxies failed, trying server-side browser fetch...');
+  
+  // Notify progress callback about server-side fetch
+  if (onProgress) {
+    onProgress('Using advanced browser engine (this may take a few seconds)...');
+  }
+  
+  try {
+    const response = await fetch('/api/browser-fetch', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ 
+        url, 
+        type: 'sitemap' 
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Server fetch failed: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      console.log('Successfully fetched via server-side browser, length:', data.content?.length);
+      return data.content;
+    } else {
+      throw new Error(data.error || 'Server-side fetch failed');
+    }
+  } catch (apiError) {
+    console.error('Server-side fetch also failed:', apiError);
+    // If server-side also fails, throw the original error
+    throw lastError || new Error('All fetch methods failed (proxies and server-side)');
+  }
 };

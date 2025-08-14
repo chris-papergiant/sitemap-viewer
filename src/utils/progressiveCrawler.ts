@@ -322,13 +322,51 @@ class ProgressiveCrawler {
     
     console.groupEnd(); // End request
     
-    // Provide a more descriptive error based on the failure type
-    if (lastError?.message.includes('403') || lastError?.message.includes('Forbidden')) {
-      throw new Error('All proxies failed - Website is blocking automated crawlers (403 Forbidden)');
-    } else if (lastError?.message.includes('Failed to fetch')) {
-      throw new Error('All proxies failed - Network error or site blocking access');
-    } else {
-      throw new Error(`All proxies failed - ${lastError?.message || 'Unknown error'}`);
+    // NEW: Try server-side browser fetch as fallback
+    console.group(`%c🌐 Attempting server-side browser fetch`, 'color: #9C27B0');
+    this.log('info', '🔄 All CORS proxies failed, trying server-side browser fetch...');
+    
+    try {
+      const response = await fetch('/api/browser-fetch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          url, 
+          type: 'crawler' 
+        }),
+        signal: this.abortController?.signal
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Server fetch failed: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success && data.html) {
+        this.log('info', `✅ Success with server-side browser fetch!`, {
+          htmlLength: data.html.length,
+          status: data.status
+        });
+        console.groupEnd();
+        return data.html;
+      } else {
+        throw new Error(data.error || 'Server-side fetch failed');
+      }
+    } catch (apiError) {
+      this.log('error', '❌ Server-side fetch also failed:', apiError);
+      console.groupEnd();
+      
+      // Provide a more descriptive error based on the failure type
+      if (lastError?.message.includes('403') || lastError?.message.includes('Forbidden')) {
+        throw new Error('All methods failed - Website is blocking automated access (403 Forbidden)');
+      } else if (lastError?.message.includes('Failed to fetch')) {
+        throw new Error('All methods failed - Network error or site blocking access');
+      } else {
+        throw new Error(`All methods failed - ${lastError?.message || 'Unknown error'}`);
+      }
     }
   }
 
