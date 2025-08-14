@@ -10,6 +10,8 @@ import { Button } from './components/ui/Button';
 import Logo from './components/Logo';
 import { fetchSitemap, parseSitemapXML, SitemapEntry } from './utils/sitemapParser';
 import { buildTreeFromUrls, TreeNode } from './utils/treeBuilder';
+import { exportTreeToCSV } from './utils/csvExporter';
+import { Download } from 'lucide-react';
 
 // URL parameter utilities for shareable links
 const updateUrlParams = (url: string, view: ViewType) => {
@@ -332,7 +334,28 @@ function App() {
                     {currentUrl ? (currentUrl.includes('://') ? new URL(currentUrl).hostname : currentUrl) : 'Sitemap Analysis'}
                   </h2>
                   
-                  <div></div>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      if (treeData) {
+                        let siteName = 'sitemap';
+                        try {
+                          if (currentUrl && currentUrl.includes('://')) {
+                            siteName = new URL(currentUrl).hostname;
+                          } else if (currentUrl) {
+                            siteName = currentUrl.replace(/[^a-z0-9]/gi, '_');
+                          }
+                        } catch (e) {
+                          siteName = 'sitemap';
+                        }
+                        exportTreeToCSV(treeData, siteName);
+                      }
+                    }}
+                    iconLeft={<Download className="w-4 h-4" />}
+                    aria-label="Download sitemap as CSV"
+                  >
+                    Download CSV
+                  </Button>
                 </div>
               </div>
             )}
