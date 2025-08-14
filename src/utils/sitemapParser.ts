@@ -217,15 +217,21 @@ const fetchWithProxies = async (url: string, corsProxies: ((url: string) => stri
       
       // Check if we got valid XML (skip this check for robots.txt)
       if (!url.endsWith('/robots.txt')) {
-        // Check for common error page indicators
-        if (text.includes('404') || text.includes('Not Found') || 
-            text.includes('403') || text.includes('Forbidden') ||
-            text.includes('Error') || text.includes('error')) {
-          console.log('Response appears to be an error page, not XML');
+        // Check if it's actually XML content
+        const isXML = text.includes('<?xml') || text.includes('<urlset') || text.includes('<sitemapindex');
+        
+        // Only reject if it's clearly an HTML error page
+        const isHTMLError = !isXML && (
+          (text.includes('<html') && (text.includes('404') || text.includes('403'))) ||
+          text.includes('<!DOCTYPE html') && (text.includes('Not Found') || text.includes('Forbidden'))
+        );
+        
+        if (isHTMLError) {
+          console.log('Response appears to be an HTML error page');
           throw new Error('Response appears to be an error page, not a valid sitemap');
         }
         
-        if (!text.includes('<?xml') && !text.includes('<urlset') && !text.includes('<sitemapindex')) {
+        if (!isXML) {
           console.log('Response does not contain XML markers. First 200 chars:', text.substring(0, 200));
           throw new Error('Response does not appear to be a valid sitemap XML');
         }

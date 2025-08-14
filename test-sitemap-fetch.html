@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Sitemap Fetching</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .test { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        .success { background: #d4edda; }
+        .error { background: #f8d7da; }
+        button { padding: 10px; margin: 5px; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+        input { padding: 5px; width: 300px; }
+    </style>
+</head>
+<body>
+    <h1>Test Sitemap Fetching</h1>
+    
+    <div>
+        <input type="text" id="urlInput" placeholder="Enter domain (e.g., papergiant.net)" value="papergiant.net">
+        <button onclick="testSitemap()">Test Sitemap</button>
+        <button onclick="clearResults()">Clear</button>
+    </div>
+    
+    <h2>Known Working Sites:</h2>
+    <button onclick="testSite('papergiant.net')">papergiant.net</button>
+    <button onclick="testSite('portable.com.au')">portable.com.au</button>
+    <button onclick="testSite('example.com')">example.com</button>
+    
+    <div id="results"></div>
+
+    <script type="module">
+        import { fetchSitemap, parseSitemapXML } from './src/utils/sitemapParser.ts';
+        
+        window.testSitemap = async function() {
+            const url = document.getElementById('urlInput').value;
+            await testSite(url);
+        }
+        
+        window.testSite = async function(domain) {
+            const results = document.getElementById('results');
+            const testDiv = document.createElement('div');
+            testDiv.className = 'test';
+            testDiv.innerHTML = `<h3>Testing ${domain}...</h3>`;
+            results.appendChild(testDiv);
+            
+            const logs = [];
+            const onProgress = (message) => {
+                logs.push(message);
+                console.log('Progress:', message);
+            };
+            
+            try {
+                console.log(`Testing sitemap for ${domain}`);
+                const startTime = Date.now();
+                
+                const xmlContent = await fetchSitemap(domain, onProgress);
+                const duration = Date.now() - startTime;
+                
+                const parsed = parseSitemapXML(xmlContent);
+                
+                testDiv.className = 'test success';
+                testDiv.innerHTML = `
+                    <h3>✅ ${domain} - SUCCESS</h3>
+                    <p>Duration: ${duration}ms</p>
+                    <p>URLs found: ${parsed.urls.length}</p>
+                    <p>Nested sitemaps: ${parsed.sitemaps?.length || 0}</p>
+                    <details>
+                        <summary>Progress Log</summary>
+                        <pre>${logs.join('\n')}</pre>
+                    </details>
+                    <details>
+                        <summary>First 5 URLs</summary>
+                        <pre>${parsed.urls.slice(0, 5).map(u => u.loc).join('\n')}</pre>
+                    </details>
+                    <details>
+                        <summary>XML Preview (first 500 chars)</summary>
+                        <pre>${xmlContent.substring(0, 500)}</pre>
+                    </details>
+                `;
+            } catch (error) {
+                testDiv.className = 'test error';
+                testDiv.innerHTML = `
+                    <h3>❌ ${domain} - FAILED</h3>
+                    <p>Error: ${error.message}</p>
+                    <details>
+                        <summary>Progress Log</summary>
+                        <pre>${logs.join('\n')}</pre>
+                    </details>
+                `;
+                console.error('Test failed:', error);
+            }
+        }
+        
+        window.clearResults = function() {
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        console.log('%c🔍 Sitemap Fetch Test Ready', 'color: #2196F3; font-weight: bold');
+    </script>
+</body>
+</html>
