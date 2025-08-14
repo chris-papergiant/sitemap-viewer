@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Browser Fetch Debug</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .test { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        .success { background: #d4edda; }
+        .error { background: #f8d7da; }
+        button { padding: 10px; margin: 5px; }
+        pre { white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>Browser Fetch Debug for papergiant.net</h1>
+    
+    <button onclick="runAllTests()">Run All Tests</button>
+    <button onclick="clearResults()">Clear</button>
+    
+    <div id="results"></div>
+
+    <script>
+        const results = document.getElementById('results');
+        
+        function log(testName, success, details) {
+            const div = document.createElement('div');
+            div.className = `test ${success ? 'success' : 'error'}`;
+            div.innerHTML = `
+                <h3>${testName}</h3>
+                <pre>${JSON.stringify(details, null, 2)}</pre>
+            `;
+            results.appendChild(div);
+        }
+        
+        function clearResults() {
+            results.innerHTML = '';
+        }
+        
+        async function testFetch(name, url, options = {}) {
+            console.group(name);
+            console.log('URL:', url);
+            console.log('Options:', options);
+            
+            try {
+                const startTime = Date.now();
+                const response = await fetch(url, options);
+                const duration = Date.now() - startTime;
+                
+                console.log('Response:', response);
+                
+                const text = await response.text();
+                
+                const result = {
+                    status: response.status,
+                    statusText: response.statusText,
+                    duration: `${duration}ms`,
+                    contentLength: text.length,
+                    contentType: response.headers.get('content-type'),
+                    hasXML: text.includes('<?xml'),
+                    hasSitemap: text.includes('<urlset') || text.includes('<sitemapindex'),
+                    first100Chars: text.substring(0, 100),
+                    headers: {}
+                };
+                
+                // Collect all headers
+                for (const [key, value] of response.headers) {
+                    result.headers[key] = value;
+                }
+                
+                log(name, response.ok && result.hasXML, result);
+                console.groupEnd();
+                return result;
+            } catch (error) {
+                const errorDetails = {
+                    error: error.message,
+                    type: error.name,
+                    stack: error.stack?.split('\n')[0]
+                };
+                log(name, false, errorDetails);
+                console.error(error);
+                console.groupEnd();
+                return errorDetails;
+            }
+        }
+        
+        async function runAllTests() {
+            clearResults();
+            
+            // Test 1: proxy.cors.sh with different headers
+            await testFetch(
+                'proxy.cors.sh - Basic',
+                'https://proxy.cors.sh/https://papergiant.net/sitemap.xml'
+            );
+            
+            await testFetch(
+                'proxy.cors.sh - With X-Requested-With',
+                'https://proxy.cors.sh/https://papergiant.net/sitemap.xml',
+                {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                }
+            );
+            
+            await testFetch(
+                'proxy.cors.sh - With mode: cors',
+                'https://proxy.cors.sh/https://papergiant.net/sitemap.xml',
+                {
+                    mode: 'cors',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                }
+            );
+            
+            await testFetch(
+                'proxy.cors.sh - With Accept header',
+                'https://proxy.cors.sh/https://papergiant.net/sitemap.xml',
+                {
+                    mode: 'cors',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/xml, text/xml, */*'
+                    }
+                }
+            );
+            
+            // Test 2: corsproxy.io
+            await testFetch(
+                'corsproxy.io',
+                `https://corsproxy.io/?${encodeURIComponent('https://papergiant.net/sitemap.xml')}`,
+                {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                }
+            );
+            
+            // Test 3: api.codetabs.com
+            await testFetch(
+                'api.codetabs.com',
+                `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent('https://papergiant.net/sitemap.xml')}`,
+                {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                }
+            );
+            
+            // Test 4: Test robots.txt first
+            await testFetch(
+                'proxy.cors.sh - robots.txt',
+                'https://proxy.cors.sh/https://papergiant.net/robots.txt',
+                {
+                    mode: 'cors',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                }
+            );
+        }
+        
+        // Also log to console for debugging
+        console.log('%c🔍 Browser Fetch Debug Tool Ready', 'color: #2196F3; font-weight: bold');
+        console.log('Click "Run All Tests" to start');
+    </script>
+</body>
+</html>

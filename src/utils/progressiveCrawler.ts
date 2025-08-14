@@ -1,11 +1,11 @@
 import { TreeNode } from './treeBuilder';
 
 // CORS proxy configuration - using multiple proxies as fallbacks
-// Note: proxy.cors.sh works best for most sites when proper headers are sent
+// Note: api.codetabs.com tends to be more reliable for many sites
 const CORS_PROXIES = [
+  'https://api.codetabs.com/v1/proxy?quest=',
   'https://proxy.cors.sh/',
   'https://corsproxy.io/?',  
-  'https://api.codetabs.com/v1/proxy?quest=',
   'https://cors-anywhere.herokuapp.com/'
 ];
 
@@ -246,11 +246,15 @@ class ProgressiveCrawler {
         });
         
         const startTime = Date.now();
-        // Headers required for proxies (especially proxy.cors.sh)
+        // Different proxies require different headers
         const headers: HeadersInit = {
-          'Accept': 'text/html',
-          'X-Requested-With': 'XMLHttpRequest' // Required for proxy.cors.sh
+          'Accept': 'text/html'
         };
+        
+        // Only add X-Requested-With for proxy.cors.sh
+        if (proxyUrl.includes('proxy.cors.sh')) {
+          headers['X-Requested-With'] = 'XMLHttpRequest';
+        }
         
         const response = await fetch(proxyUrl, {
           signal: this.abortController?.signal,

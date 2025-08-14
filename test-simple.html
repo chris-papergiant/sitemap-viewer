@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Proxy Test</title>
+</head>
+<body>
+    <h1>Simple Proxy Test</h1>
+    <button onclick="test1()">Test proxy.cors.sh</button>
+    <button onclick="test2()">Test without Origin header</button>
+    <button onclick="test3()">Test with Origin header</button>
+    <pre id="result"></pre>
+
+    <script>
+        async function test1() {
+            console.log('Test 1: Standard headers');
+            const url = 'https://proxy.cors.sh/https://papergiant.net/sitemap.xml';
+            try {
+                const response = await fetch(url, {
+                    mode: 'cors',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                console.log('Response:', response);
+                const text = await response.text();
+                document.getElementById('result').textContent = `Success! Status: ${response.status}\n${text.substring(0, 500)}`;
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('result').textContent = `Error: ${error.message}`;
+            }
+        }
+        
+        async function test2() {
+            console.log('Test 2: No mode specified');
+            const url = 'https://proxy.cors.sh/https://papergiant.net/sitemap.xml';
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/xml, text/xml, */*'
+                    }
+                });
+                console.log('Response:', response);
+                const text = await response.text();
+                document.getElementById('result').textContent = `Success! Status: ${response.status}\n${text.substring(0, 500)}`;
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('result').textContent = `Error: ${error.message}`;
+            }
+        }
+        
+        async function test3() {
+            console.log('Test 3: With Origin header');
+            const url = 'https://proxy.cors.sh/https://papergiant.net/sitemap.xml';
+            try {
+                const response = await fetch(url, {
+                    mode: 'cors',
+                    headers: {
+                        'Origin': window.location.origin,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                console.log('Response:', response);
+                const text = await response.text();
+                document.getElementById('result').textContent = `Success! Status: ${response.status}\n${text.substring(0, 500)}`;
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('result').textContent = `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

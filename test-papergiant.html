@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test PaperGiant.net Sitemap</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        button { padding: 10px; margin: 5px; }
+        pre { background: #f0f0f0; padding: 10px; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Test PaperGiant.net Sitemap Fetching</h1>
+    
+    <button onclick="testDirect()">Test Direct (will fail - CORS)</button>
+    <button onclick="testProxyCors()">Test proxy.cors.sh</button>
+    <button onclick="testCorsproxy()">Test corsproxy.io</button>
+    <button onclick="testCodetabs()">Test codetabs</button>
+    
+    <div id="results"></div>
+
+    <script>
+        const url = 'https://papergiant.net/sitemap.xml';
+        const resultsDiv = document.getElementById('results');
+        
+        async function testDirect() {
+            resultsDiv.innerHTML = '<h2>Testing Direct...</h2>';
+            try {
+                const response = await fetch(url);
+                resultsDiv.innerHTML += '<p class="error">Unexpected: Direct fetch worked (shouldn\'t in browser)</p>';
+            } catch (error) {
+                resultsDiv.innerHTML += `<p class="success">Expected CORS error: ${error.message}</p>`;
+            }
+        }
+        
+        async function testProxyCors() {
+            resultsDiv.innerHTML = '<h2>Testing proxy.cors.sh...</h2>';
+            const proxyUrl = `https://proxy.cors.sh/${url}`;
+            
+            console.log('Testing URL:', proxyUrl);
+            
+            // Test WITHOUT headers
+            try {
+                const response1 = await fetch(proxyUrl);
+                const text1 = await response1.text();
+                resultsDiv.innerHTML += `<p class="error">Without headers: ${response1.status} - ${text1.substring(0, 100)}</p>`;
+            } catch (error) {
+                resultsDiv.innerHTML += `<p class="error">Without headers failed: ${error.message}</p>`;
+            }
+            
+            // Test WITH headers
+            try {
+                const response2 = await fetch(proxyUrl, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/xml, text/xml, */*'
+                    }
+                });
+                const text2 = await response2.text();
+                
+                if (response2.ok && text2.includes('<?xml')) {
+                    resultsDiv.innerHTML += `<p class="success">✅ WITH HEADERS WORKS! Status: ${response2.status}, Length: ${text2.length}</p>`;
+                    resultsDiv.innerHTML += `<pre>${text2.substring(0, 300)}...</pre>`;
+                } else {
+                    resultsDiv.innerHTML += `<p class="error">With headers: ${response2.status}</p>`;
+                    resultsDiv.innerHTML += `<pre>${text2.substring(0, 300)}</pre>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML += `<p class="error">With headers failed: ${error.message}</p>`;
+                console.error('Error:', error);
+            }
+        }
+        
+        async function testCorsproxy() {
+            resultsDiv.innerHTML = '<h2>Testing corsproxy.io...</h2>';
+            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+            
+            console.log('Testing URL:', proxyUrl);
+            
+            try {
+                const response = await fetch(proxyUrl, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                const text = await response.text();
+                
+                if (response.ok) {
+                    resultsDiv.innerHTML += `<p>Status: ${response.status}, Length: ${text.length}</p>`;
+                    resultsDiv.innerHTML += `<pre>${text.substring(0, 300)}</pre>`;
+                } else {
+                    resultsDiv.innerHTML += `<p class="error">Failed: ${response.status}</p>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML += `<p class="error">Error: ${error.message}</p>`;
+            }
+        }
+        
+        async function testCodetabs() {
+            resultsDiv.innerHTML = '<h2>Testing codetabs...</h2>';
+            const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`;
+            
+            console.log('Testing URL:', proxyUrl);
+            
+            try {
+                const response = await fetch(proxyUrl, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                const text = await response.text();
+                
+                if (response.ok && text.includes('<?xml')) {
+                    resultsDiv.innerHTML += `<p class="success">✅ SUCCESS! Status: ${response.status}, Length: ${text.length}</p>`;
+                    resultsDiv.innerHTML += `<pre>${text.substring(0, 300)}...</pre>`;
+                } else {
+                    resultsDiv.innerHTML += `<p class="error">Status: ${response.status}</p>`;
+                    resultsDiv.innerHTML += `<pre>${text.substring(0, 300)}</pre>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML += `<p class="error">Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

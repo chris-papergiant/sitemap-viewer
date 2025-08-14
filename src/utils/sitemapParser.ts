@@ -123,11 +123,11 @@ export const fetchSitemap = async (url: string, onProgress?: (message: string) =
     : getSitemapAlternatives(baseUrl);
   
   // Try multiple CORS proxies in order of reliability
-  // Note: proxy.cors.sh works best for most sites when proper headers are sent
+  // Note: api.codetabs.com tends to work better than proxy.cors.sh for some sites
   const corsProxies = [
+    (url: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
     (url: string) => `https://proxy.cors.sh/${url}`,
     (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    (url: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
     (url: string) => `https://cors-anywhere.herokuapp.com/${url}`,
   ];
   
@@ -191,14 +191,25 @@ const fetchWithProxies = async (url: string, corsProxies: ((url: string) => stri
       const proxyUrl = proxyFn(url);
       console.log('Trying CORS proxy:', proxyUrl);
       
+      // Different proxies require different headers
+      const headers: HeadersInit = {
+        'Accept': 'application/xml, text/xml, */*'
+      };
+      
+      // Only add X-Requested-With for proxy.cors.sh
+      if (proxyUrl.includes('proxy.cors.sh')) {
+        headers['X-Requested-With'] = 'XMLHttpRequest';
+      }
+      
       const response = await fetch(proxyUrl, {
-        headers: {
-          'Accept': 'application/xml, text/xml, */*',
-          'X-Requested-With': 'XMLHttpRequest' // Required for proxy.cors.sh
-        }
+        mode: 'cors',
+        headers
       });
       
+      console.log(`Proxy response status: ${response.status} ${response.statusText}`);
+      
       if (!response.ok) {
+        console.log(`Proxy returned error: ${response.status} ${response.statusText}`);
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
