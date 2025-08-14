@@ -283,16 +283,22 @@ class ProgressiveCrawler {
         
         const html = await response.text();
         
+        // Log what we received for debugging
+        this.log('debug', `Received HTML from ${proxyName}:`, {
+          length: html.length,
+          first100: html.substring(0, 100)
+        });
+        
         // Check if we got a valid HTML page (not a proxy error page)
         // Real pages are usually at least 1KB, and have proper HTML structure
         const isValidHTML = html.length > 1000 && 
                            (html.includes('<!DOCTYPE') || html.includes('<html')) &&
-                           html.includes('</html>') &&
+                           (html.includes('</html>') || html.includes('</body>')) &&
                            !html.includes('Moved Permanently') && 
                            !html.includes('Moved Temporarily');
         
         if (!isValidHTML) {
-          this.log('warn', `Proxy returned invalid/redirect content`, {
+          this.log('warn', `❌ Proxy returned invalid/redirect content`, {
             htmlLength: html.length,
             hasDoctype: html.includes('<!DOCTYPE'),
             hasHtml: html.includes('<html'),
