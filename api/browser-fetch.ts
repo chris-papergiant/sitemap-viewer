@@ -6,8 +6,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 let executablePath: string | null = null;
 
 // Set the chromium binary URL for @sparticuz/chromium-min
-// Using a specific version that's known to work
-const CHROMIUM_PACK_URL = 'https://github.com/Sparticuz/chromium/releases/download/v131.0.0-pack/chromium-v131.0.0-pack.tar';
+// Using the latest stable version v138
+const CHROMIUM_PACK_URL = 'https://github.com/Sparticuz/chromium/releases/download/v138.0.0-pack/chromium-v138.0.0-pack.tar';
 
 export default async function handler(
   req: VercelRequest,
