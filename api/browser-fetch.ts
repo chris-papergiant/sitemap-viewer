@@ -1,13 +1,9 @@
 import { chromium } from 'playwright-core';
-import chromiumMin from '@sparticuz/chromium-min';
+import chromiumPack from '@sparticuz/chromium';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 // Cache browser executable path
 let executablePath: string | null = null;
-
-// Set the chromium binary URL for @sparticuz/chromium-min
-// Using the latest stable version v138
-const CHROMIUM_PACK_URL = 'https://github.com/Sparticuz/chromium/releases/download/v138.0.0-pack/chromium-v138.0.0-pack.tar';
 
 export default async function handler(
   req: VercelRequest,
@@ -39,14 +35,14 @@ export default async function handler(
   try {
     // Get or cache the executable path
     if (!executablePath) {
-      // Download and get the chromium binary path
-      executablePath = await chromiumMin.executablePath(CHROMIUM_PACK_URL);
+      // Get the chromium binary path from the included package
+      executablePath = await chromiumPack.executablePath();
     }
 
     // Launch browser with serverless-optimized settings
     browser = await chromium.launch({
       args: [
-        ...chromiumMin.args,
+        ...chromiumPack.args,
         '--disable-web-security',
         '--disable-features=IsolateOrigins',
         '--disable-site-isolation-trials',
