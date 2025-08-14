@@ -439,7 +439,13 @@ function App() {
                     </h3>
                     <div className="card-minimal p-4 bg-error-50 border border-error-200">
                       <p className="text-body text-error-600">
-                        The website doesn't have a sitemap, or is blocking access to it.
+                        {currentUrl ? (
+                          <>
+                            <strong>{currentUrl}</strong> doesn't have a sitemap, or is blocking access to it.
+                          </>
+                        ) : (
+                          'The website doesn\'t have a sitemap, or is blocking access to it.'
+                        )}
                       </p>
                     </div>
                     <div className="mt-4 space-y-2">
