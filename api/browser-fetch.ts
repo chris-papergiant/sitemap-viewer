@@ -5,6 +5,10 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 // Cache browser executable path
 let executablePath: string | null = null;
 
+// Set the chromium binary URL for @sparticuz/chromium-min
+// Using a specific version that's known to work
+const CHROMIUM_PACK_URL = 'https://github.com/Sparticuz/chromium/releases/download/v131.0.0-pack/chromium-v131.0.0-pack.tar';
+
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse
@@ -35,8 +39,8 @@ export default async function handler(
   try {
     // Get or cache the executable path
     if (!executablePath) {
-      // Use the default chromium binary from @sparticuz/chromium-min
-      executablePath = await chromiumMin.executablePath();
+      // Download and get the chromium binary path
+      executablePath = await chromiumMin.executablePath(CHROMIUM_PACK_URL);
     }
 
     // Launch browser with serverless-optimized settings
