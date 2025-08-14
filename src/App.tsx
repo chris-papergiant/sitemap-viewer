@@ -439,9 +439,7 @@ function App() {
                     </h3>
                     <div className="card-minimal p-4 bg-error-50 border border-error-200">
                       <p className="text-body text-error-600">
-                        {error.includes('blocking automated crawlers') || error.includes('403 Forbidden') ? 
-                          'This website is blocking access to its sitemap. This is common for government and banking sites.' : 
-                          'This website doesn\'t have a sitemap we can access, or it\'s blocking automated requests.'}
+                        The website doesn't have a sitemap, or is blocking access to it.
                       </p>
                     </div>
                     <div className="mt-4 space-y-2">
