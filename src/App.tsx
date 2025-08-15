@@ -47,7 +47,6 @@ function App() {
   const [currentUrl, setCurrentUrl] = useState('');
   const [isCrawling, setIsCrawling] = useState(false);
   const [crawlState, setCrawlState] = useState<CrawlState | null>(null);
-  const [showCrawlOption, setShowCrawlOption] = useState(false);
   const crawlerRef = useRef<ProgressiveCrawler | null>(null);
   const isCompleteRef = useRef(false);
 
@@ -178,9 +177,6 @@ function App() {
       }
     } catch (err) {
       console.error('Error during sitemap fetch:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch or parse sitemap');
-      setShowCrawlOption(true); // Show crawl option when sitemap fails
-      setCurrentUrl(url); // Store URL for potential crawling
       
       // Track sitemap failure
       track('sitemap_failed', {
@@ -188,6 +184,13 @@ function App() {
         error: err instanceof Error ? err.message : 'Unknown error',
         type: 'sitemap'
       });
+      
+      // Automatically start crawling when sitemap is not found
+      console.log('Sitemap not found, automatically starting crawler...');
+      setIsLoading(false); // Stop the sitemap loading state
+      setProgress(0);
+      handleStartCrawl(url); // Automatically start crawling
+      return; // Exit early since we're starting the crawler
     } finally {
       // Keep the progress bar visible for a moment at 100%
       if (isCompleteRef.current) {
@@ -220,7 +223,6 @@ function App() {
     });
     
     setError(null);
-    setShowCrawlOption(false);
     setIsCrawling(true);
     setIsVisualisationMode(true);
     setCurrentUrl(url);
@@ -460,32 +462,6 @@ function App() {
                       </ul>
                     </div>
                     
-                    {showCrawlOption && !isCrawling && (
-                      <div className="mt-6 p-4 bg-primary-pink/5 rounded-lg border border-primary-pink/20">
-                        <div className="flex items-start gap-3">
-                          <AlertCircle className="w-5 h-5 text-primary-pink mt-0.5" />
-                          <div className="flex-1">
-                            <p className="text-sm font-semibold text-gray-900 mb-1">
-                              Alternative: Crawl the website
-                            </p>
-                            <p className="text-xs text-gray-600 mb-3">
-                              We can try to discover pages by crawling the website directly. This takes longer but may work when sitemaps aren't available.
-                            </p>
-                            <button
-                              onClick={() => handleStartCrawl(currentUrl)}
-                              className="flex items-center gap-2 px-4 py-2 bg-primary-pink text-white rounded-lg hover:bg-primary-pink/90 transition-colors text-sm font-medium"
-                              style={{
-                                backgroundColor: '#DB1B5C',
-                                color: '#ffffff'
-                              }}
-                            >
-                              <Play className="w-4 h-4" style={{ color: '#ffffff' }} />
-                              <span style={{ color: '#ffffff', opacity: 1 }}>Start Website Crawl</span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                     
                     {isVisualisationMode && (
                       <Button
@@ -497,7 +473,6 @@ function App() {
                           setCurrentUrl('');
                           setSearchQuery('');
                           setError(null);
-                          setShowCrawlOption(false);
                         }}
                         className="mt-6"
                       >
