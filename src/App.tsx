@@ -13,7 +13,7 @@ import { fetchSitemap, parseSitemapXML, SitemapEntry } from './utils/sitemapPars
 import { buildTreeFromUrls, TreeNode } from './utils/treeBuilder';
 import { exportTreeToCSV } from './utils/csvExporter';
 import ProgressiveCrawler, { CrawlState } from './utils/progressiveCrawler';
-import { Download, AlertCircle, Play, Pause, Square } from 'lucide-react';
+import { Download, Play, Pause, Square } from 'lucide-react';
 
 // URL parameter utilities for shareable links
 const updateUrlParams = (url: string, view: ViewType) => {
@@ -304,7 +304,6 @@ function App() {
       
       setError(userMessage);
       setIsCrawling(false);
-      setShowCrawlOption(false);
       
       // Track crawler failure
       track('crawler_failed', {
