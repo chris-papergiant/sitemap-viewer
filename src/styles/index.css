@@ -7,9 +7,12 @@
 @tailwind utilities;
 
 @layer base {
-  /* Paper Giant Typography - Load fonts */
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-  
+  /* Fonts loaded via <link> in index.html for non-blocking load */
+
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     margin: 0;
     font-family: 'America', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
@@ -25,9 +28,7 @@
     accent-color: #DB1B5C;
   }
   
-  * {
-    scroll-behavior: smooth;
-  }
+  /* scroll-behavior set on html above */
 
   /* Paper Giant heading hierarchy */
   h1, h2, h3, h4, h5, h6 {

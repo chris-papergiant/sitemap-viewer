@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { track } from '@vercel/analytics';
 import SitemapFetcher from './components/SitemapFetcher';
 import SitemapStats from './components/SitemapStats';
@@ -6,7 +6,6 @@ import ProgressBar from './components/ProgressBar';
 import ViewSwitcher, { ViewType } from './components/ViewSwitcher';
 import ExplorerView from './components/views/ExplorerView';
 import ColumnsView from './components/views/ColumnsView';
-import GraphView from './components/views/GraphView';
 import { Button } from './components/ui/Button';
 import Logo from './components/Logo';
 import { fetchSitemap, parseSitemapXML, SitemapEntry } from './utils/sitemapParser';
@@ -14,6 +13,18 @@ import { buildTreeFromUrls, TreeNode } from './utils/treeBuilder';
 import { exportTreeToCSV } from './utils/csvExporter';
 import ProgressiveCrawler, { CrawlState } from './utils/progressiveCrawler';
 import { Download, Play, Pause, Square } from 'lucide-react';
+
+// Lazy-load GraphView since it pulls in the large D3 library (~250KB)
+const GraphView = lazy(() => import('./components/views/GraphView'));
+
+// Extract hostname from a URL string, handling missing protocols
+const getDomain = (url: string): string => {
+  try {
+    return getDomain(url);
+  } catch {
+    return url;
+  }
+};
 
 // URL parameter utilities for shareable links
 const updateUrlParams = (url: string, view: ViewType) => {
@@ -50,6 +61,25 @@ function App() {
   const crawlerRef = useRef<ProgressiveCrawler | null>(null);
   const isCompleteRef = useRef(false);
 
+  // Memoize domain description to avoid re-computing on every render
+  const domainDescription = useMemo(() => {
+    if (!currentUrl) return "your website's structure";
+    const domain = getDomain(currentUrl);
+    const commonTlds = ['.com', '.org', '.net', '.io', '.au', '.gov', '.edu'];
+    const hasCommonTld = commonTlds.some(tld => domain.endsWith(tld));
+    return hasCommonTld ? `${domain}'s structure` : `the structure of ${domain}`;
+  }, [currentUrl]);
+
+  // Shared reset handler to avoid inline function duplication
+  const handleReset = useCallback(() => {
+    setIsVisualisationMode(false);
+    setTreeData(null);
+    setUrls([]);
+    setCurrentUrl('');
+    setSearchQuery('');
+    setError(null);
+  }, []);
+
   const handleFetchSitemap = async (url: string) => {
     setIsLoading(true);
     setError(null);
@@ -65,13 +95,11 @@ function App() {
     // Track sitemap search event
     track('sitemap_search', {
       url: url,
-      domain: url.includes('://') ? new URL(url.startsWith('http') ? url : `https://${url}`).hostname : url,
+      domain: getDomain(url),
       timestamp: new Date().toISOString()
     });
 
     try {
-      console.log('Starting sitemap fetch for:', url);
-      
       setProgress(10);
       setProgressMessage('Fetching sitemap...');
       setProgressSubMessage(`Connecting to ${url}`);
@@ -83,45 +111,43 @@ function App() {
       setProgress(30);
       setProgressMessage('Parsing XML content...');
       setProgressSubMessage('Understanding your site structure');
-      console.log('XML content fetched, parsing...');
       
       const parsed = parseSitemapXML(xmlContent);
       
       if (parsed.sitemaps && parsed.sitemaps.length > 0) {
-        console.log(`Processing sitemap index with ${parsed.sitemaps.length} sitemaps`);
         setProgressMessage('Processing sitemap index...');
         setProgressSubMessage(`Found ${parsed.sitemaps.length} nested sitemaps`);
-        
+
         const allUrls: SitemapEntry[] = [];
         const totalSitemaps = parsed.sitemaps.length;
-        
-        for (let i = 0; i < totalSitemaps; i++) {
-          const sitemapUrl = parsed.sitemaps[i];
-          const progressPercent = 30 + ((i / totalSitemaps) * 50);
+        const BATCH_SIZE = 5;
+
+        for (let batchStart = 0; batchStart < totalSitemaps; batchStart += BATCH_SIZE) {
+          const batch = parsed.sitemaps.slice(batchStart, batchStart + BATCH_SIZE);
+          const progressPercent = 30 + ((batchStart / totalSitemaps) * 50);
           setProgress(progressPercent);
           setProgressMessage(`Fetching nested sitemaps...`);
-          setProgressSubMessage(`Processing ${i + 1} of ${totalSitemaps} sitemaps`);
-          
-          try {
-            console.log(`Fetching nested sitemap: ${sitemapUrl}`);
-            const subXml = await fetchSitemap(sitemapUrl, (message) => {
-              setProgressSubMessage(`Processing ${i + 1} of ${totalSitemaps} - ${message}`);
-            });
-            const subParsed = parseSitemapXML(subXml);
-            allUrls.push(...subParsed.urls);
-            
-            // Update with current URL count
-            setProgressSubMessage(`Processing ${i + 1} of ${totalSitemaps} - Found ${allUrls.length} URLs so far`);
-          } catch (err) {
-            console.error(`Failed to fetch nested sitemap: ${sitemapUrl}`, err);
+          setProgressSubMessage(`Processing ${Math.min(batchStart + BATCH_SIZE, totalSitemaps)} of ${totalSitemaps} sitemaps`);
+
+          const results = await Promise.allSettled(
+            batch.map(sitemapUrl =>
+              fetchSitemap(sitemapUrl, () => {}).then(subXml => parseSitemapXML(subXml).urls)
+            )
+          );
+
+          for (const result of results) {
+            if (result.status === 'fulfilled') {
+              allUrls.push(...result.value);
+            }
           }
+
+          setProgressSubMessage(`Processed ${Math.min(batchStart + BATCH_SIZE, totalSitemaps)} of ${totalSitemaps} - Found ${allUrls.length} URLs so far`);
         }
         
         if (allUrls.length > 0) {
           setProgress(85);
           setProgressMessage('Building your site view...');
           setProgressSubMessage(`Organising ${allUrls.length} pages for you`);
-          console.log(`Total URLs collected: ${allUrls.length}`);
           
           setUrls(allUrls);
           const tree = buildTreeFromUrls(allUrls);
@@ -134,7 +160,7 @@ function App() {
           
           // Track successful sitemap fetch
           track('sitemap_success', {
-            domain: new URL(url.startsWith('http') ? url : `https://${url}`).hostname,
+            domain: getDomain(url),
             urlCount: allUrls.length,
             type: 'sitemap_index'
           });
@@ -148,7 +174,6 @@ function App() {
         setProgress(60);
         setProgressMessage('Processing URLs...');
         setProgressSubMessage(`Found ${parsed.urls.length} URLs`);
-        console.log(`Found ${parsed.urls.length} URLs in sitemap`);
         
         setProgress(85);
         setProgressMessage('Building your site view...');
@@ -165,7 +190,7 @@ function App() {
         
         // Track successful sitemap fetch
         track('sitemap_success', {
-          domain: new URL(url.startsWith('http') ? url : `https://${url}`).hostname,
+          domain: getDomain(url),
           urlCount: parsed.urls.length,
           type: 'sitemap'
         });
@@ -176,17 +201,14 @@ function App() {
         setError('No URLs found in the sitemap. The sitemap might be empty or in an unsupported format.');
       }
     } catch (err) {
-      console.error('Error during sitemap fetch:', err);
-      
       // Track sitemap failure
       track('sitemap_failed', {
-        domain: url.includes('://') ? new URL(url.startsWith('http') ? url : `https://${url}`).hostname : url,
+        domain: getDomain(url),
         error: err instanceof Error ? err.message : 'Unknown error',
         type: 'sitemap'
       });
       
       // Automatically start crawling when sitemap is not found
-      console.log('Sitemap not found, automatically starting crawler...');
       setIsLoading(false); // Stop the sitemap loading state
       setProgress(0);
       handleStartCrawl(url); // Automatically start crawling
@@ -207,50 +229,30 @@ function App() {
   };
 
   const handleStartCrawl = async (url: string) => {
-    console.group('%c🚀 APP: Starting Crawl', 'color: #FF6B6B; font-weight: bold; font-size: 14px');
-    console.log('Input URL:', url);
-    console.log('Current state:', {
-      error,
-      isCrawling,
-      isVisualisationMode,
-      treeData: treeData ? 'exists' : 'null'
-    });
-    
     // Track crawler start event
     track('crawler_started', {
-      domain: url.includes('://') ? new URL(url.startsWith('http') ? url : `https://${url}`).hostname : url,
+      domain: getDomain(url),
       timestamp: new Date().toISOString()
     });
-    
+
     setError(null);
     setIsCrawling(true);
     setIsVisualisationMode(true);
     setCurrentUrl(url);
     
-    // Initialize crawler with detailed logging
-    console.log('%c📊 Initializing crawler with callback...', 'color: #4ECDC4');
-    let callbackCount = 0;
-    
+    let lastUrlCount = 0;
     crawlerRef.current = new ProgressiveCrawler((state) => {
-      callbackCount++;
-      console.log(`%c📨 Callback #${callbackCount}`, 'color: #95E77E', {
-        status: state.status,
-        discovered: state.discovered.size,
-        queue: state.queue.length,
-        processed: state.stats.pagesProcessed,
-        found: state.stats.pagesFound,
-        failed: state.stats.failedPages.length,
-        tree: state.tree ? `${state.tree.name} with ${state.tree.children?.length || 0} children` : 'null'
-      });
-      
       setCrawlState(state);
       setTreeData(state.tree);
-      
-      // Convert discovered URLs to SitemapEntry format for stats
-      const mockUrls: SitemapEntry[] = Array.from(state.discovered).map(url => ({
-        loc: url
-      }));
-      setUrls(mockUrls);
+
+      // Only rebuild the SitemapEntry array when new URLs are actually discovered
+      if (state.discovered.size !== lastUrlCount) {
+        lastUrlCount = state.discovered.size;
+        const mockUrls: SitemapEntry[] = Array.from(state.discovered).map(u => ({
+          loc: u
+        }));
+        setUrls(mockUrls);
+      }
       
       // Update progress messages
       setProgressMessage(`Discovering site structure...`);
@@ -258,19 +260,13 @@ function App() {
       
       // If crawling is complete or errored, update UI
       if (state.status === 'complete' || state.status === 'error') {
-        console.log(`%c🏁 Crawl ${state.status}`, state.status === 'complete' ? 'color: #52C41A' : 'color: #FF4D4F', {
-          totalDiscovered: state.discovered.size,
-          totalProcessed: state.stats.pagesProcessed,
-          totalFailed: state.stats.failedPages.length,
-          duration: `${(Date.now() - state.stats.startTime) / 1000}s`
-        });
         setIsCrawling(false);
         if (state.status === 'complete') {
           setError(null); // Clear any previous errors
           
           // Track successful crawl
           track('crawler_success', {
-            domain: url.includes('://') ? new URL(url.startsWith('http') ? url : `https://${url}`).hostname : url,
+            domain: getDomain(url),
             pagesDiscovered: state.discovered.size,
             pagesProcessed: state.stats.pagesProcessed,
             duration: Math.round((Date.now() - state.stats.startTime) / 1000)
@@ -280,15 +276,8 @@ function App() {
     });
     
     try {
-      console.log('%c🏃 Starting crawl...', 'color: #FFA500');
       await crawlerRef.current.startCrawl(url);
-      console.log('%c✅ Crawl started successfully', 'color: #52C41A');
     } catch (error) {
-      console.error('%c❌ Crawl error:', 'color: #FF4D4F', error);
-      console.log('Error details:', {
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : 'No stack trace'
-      });
       
       // Determine the type of error for better messaging
       const errorMessage = error instanceof Error ? error.message.toLowerCase() : '';
@@ -307,12 +296,10 @@ function App() {
       
       // Track crawler failure
       track('crawler_failed', {
-        domain: url.includes('://') ? new URL(url.startsWith('http') ? url : `https://${url}`).hostname : url,
+        domain: getDomain(url),
         error: errorMessage,
         type: errorMessage.includes('403') ? 'blocked' : 'network'
       });
-    } finally {
-      console.groupEnd();
     }
   };
 
@@ -348,7 +335,7 @@ function App() {
       track('view_changed', {
         from: previousView,
         to: view,
-        domain: currentUrl.includes('://') ? new URL(currentUrl.startsWith('http') ? currentUrl : `https://${currentUrl}`).hostname : currentUrl,
+        domain: getDomain(currentUrl),
         urlCount: urls.length
       });
     }
@@ -465,14 +452,7 @@ function App() {
                     {isVisualisationMode && (
                       <Button
                         variant="secondary"
-                        onClick={() => {
-                          setIsVisualisationMode(false);
-                          setTreeData(null);
-                          setUrls([]);
-                          setCurrentUrl('');
-                          setSearchQuery('');
-                          setError(null);
-                        }}
+                        onClick={handleReset}
                         className="mt-6"
                       >
                         Try Another Website
@@ -506,13 +486,7 @@ function App() {
                     </div>
                     <Button
                       variant="ghost"
-                      onClick={() => {
-                        setIsVisualisationMode(false);
-                        setTreeData(null);
-                        setUrls([]);
-                        setCurrentUrl('');
-                        setSearchQuery('');
-                      }}
+                      onClick={handleReset}
                       iconLeft={
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -674,17 +648,7 @@ function App() {
                       Site Overview
                     </h2>
                     <p className="text-gray-600 max-w-2xl mx-auto">
-                      Key metrics and insights from {currentUrl ? (() => {
-                        try {
-                          const url = currentUrl.startsWith('http') ? currentUrl : `https://${currentUrl}`;
-                          const domain = new URL(url).hostname;
-                          return domain.endsWith('.com') || domain.endsWith('.org') || domain.endsWith('.net') || domain.endsWith('.io') || domain.endsWith('.au') || domain.endsWith('.gov') || domain.endsWith('.edu') 
-                            ? `${domain}'s structure`
-                            : `the structure of ${domain}`;
-                        } catch {
-                          return 'your website\'s structure';
-                        }
-                      })() : 'your website\'s structure'}
+                      Key metrics and insights from {domainDescription}
                     </p>
                   </div>
                   <SitemapStats treeData={treeData} urls={urls} />
@@ -725,7 +689,9 @@ function App() {
                 )}
                 {currentView === 'graph' && (
                   <div className="animate-fade-in">
-                    <GraphView data={treeData} searchQuery={searchQuery} />
+                    <Suspense fallback={<div className="p-12 text-center text-gray-500">Loading graph view...</div>}>
+                      <GraphView data={treeData} searchQuery={searchQuery} />
+                    </Suspense>
                   </div>
                 )}
                 </div>
@@ -742,17 +708,7 @@ function App() {
                       Site Overview
                     </h2>
                     <p className="text-gray-600 max-w-2xl mx-auto">
-                      Key metrics and insights from {currentUrl ? (() => {
-                        try {
-                          const url = currentUrl.startsWith('http') ? currentUrl : `https://${currentUrl}`;
-                          const domain = new URL(url).hostname;
-                          return domain.endsWith('.com') || domain.endsWith('.org') || domain.endsWith('.net') || domain.endsWith('.io') || domain.endsWith('.au') || domain.endsWith('.gov') || domain.endsWith('.edu') 
-                            ? `${domain}'s structure`
-                            : `the structure of ${domain}`;
-                        } catch {
-                          return 'your website\'s structure';
-                        }
-                      })() : 'your website\'s structure'}
+                      Key metrics and insights from {domainDescription}
                     </p>
                   </div>
                   <SitemapStats treeData={treeData} urls={urls} />

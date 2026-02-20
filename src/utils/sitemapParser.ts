@@ -12,22 +12,19 @@ export interface ParsedSitemap {
   sitemaps?: string[];
 }
 
-export const parseSitemapXML = (xmlContent: string): ParsedSitemap => {
-  const parser = new XMLParser({
-    ignoreAttributes: false,
-    attributeNamePrefix: '@_',
-    parseAttributeValue: true,
-    removeNSPrefix: true, // Remove namespace prefixes
-    parseTagValue: true,
-    trimValues: true,
-  });
+// Reuse a single XMLParser instance since configuration is static
+const xmlParser = new XMLParser({
+  ignoreAttributes: false,
+  attributeNamePrefix: '@_',
+  parseAttributeValue: true,
+  removeNSPrefix: true,
+  parseTagValue: true,
+  trimValues: true,
+});
 
-  console.log('Parsing XML content, length:', xmlContent.length);
-  
-  const result = parser.parse(xmlContent);
+export const parseSitemapXML = (xmlContent: string): ParsedSitemap => {
+  const result = xmlParser.parse(xmlContent);
   const parsed: ParsedSitemap = { urls: [] };
-  
-  console.log('Parsed result:', JSON.stringify(result, null, 2).substring(0, 500));
 
   // Handle urlset (regular sitemap)
   if (result.urlset && result.urlset.url) {
@@ -37,9 +34,7 @@ export const parseSitemapXML = (xmlContent: string): ParsedSitemap => {
       lastmod: url.lastmod,
       changefreq: url.changefreq,
       priority: url.priority ? parseFloat(url.priority) : undefined,
-    })).filter((url: SitemapEntry) => url.loc); // Filter out entries without loc
-    
-    console.log(`Found ${parsed.urls.length} URLs in urlset`);
+    })).filter((url: SitemapEntry) => url.loc);
   }
 
   // Handle sitemapindex (sitemap of sitemaps)
@@ -50,8 +45,6 @@ export const parseSitemapXML = (xmlContent: string): ParsedSitemap => {
     parsed.sitemaps = sitemaps.map((sitemap: any) => 
       typeof sitemap === 'string' ? sitemap : sitemap.loc
     ).filter(Boolean);
-    
-    console.log(`Found ${parsed.sitemaps?.length || 0} nested sitemaps`);
   }
 
   // Sometimes the structure might be different, try alternative paths
@@ -82,7 +75,6 @@ export const parseSitemapXML = (xmlContent: string): ParsedSitemap => {
     const extractedUrls = findUrls(result);
     if (extractedUrls.length > 0) {
       parsed.urls = extractedUrls.map(loc => ({ loc }));
-      console.log(`Found ${parsed.urls.length} URLs using deep search`);
     }
   }
 
@@ -150,8 +142,7 @@ export const fetchSitemap = async (url: string, onProgress?: (message: string) =
         } else {
           onProgress?.(`No sitemap found in robots.txt, trying common locations...`);
         }
-      } catch (error) {
-        console.log('Failed to check robots.txt:', error);
+      } catch (_error) {
         onProgress?.(`Couldn't access robots.txt, trying common locations...`);
       }
       continue;
@@ -162,11 +153,8 @@ export const fetchSitemap = async (url: string, onProgress?: (message: string) =
     onProgress?.(`Trying ${locationName}... (${locationIndex}/${sitemapCandidates.length - 1})`);
     
     try {
-      const result = await fetchWithProxies(sitemapUrl, corsProxies, onProgress);
-      console.log(`Successfully fetched sitemap from: ${sitemapUrl}`);
-      return result;
+      return await fetchWithProxies(sitemapUrl, corsProxies, onProgress);
     } catch (error) {
-      console.log(`Failed to fetch from ${sitemapUrl}:`, error);
       lastError = error instanceof Error ? error : new Error('Unknown error');
       continue;
     }
@@ -189,7 +177,6 @@ const fetchWithProxies = async (url: string, corsProxies: ((url: string) => stri
   for (const proxyFn of corsProxies) {
     try {
       const proxyUrl = proxyFn(url);
-      console.log('Trying CORS proxy:', proxyUrl);
       
       // Different proxies require different headers
       const headers: HeadersInit = {
@@ -206,10 +193,7 @@ const fetchWithProxies = async (url: string, corsProxies: ((url: string) => stri
         headers
       });
       
-      console.log(`Proxy response status: ${response.status} ${response.statusText}`);
-      
       if (!response.ok) {
-        console.log(`Proxy returned error: ${response.status} ${response.statusText}`);
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
@@ -227,29 +211,22 @@ const fetchWithProxies = async (url: string, corsProxies: ((url: string) => stri
         );
         
         if (isHTMLError) {
-          console.log('Response appears to be an HTML error page');
           throw new Error('Response appears to be an error page, not a valid sitemap');
         }
         
         if (!isXML) {
-          console.log('Response does not contain XML markers. First 200 chars:', text.substring(0, 200));
           throw new Error('Response does not appear to be a valid sitemap XML');
         }
       }
       
-      console.log('Successfully fetched content, length:', text.length);
       return text;
     } catch (error) {
-      console.error('Proxy failed:', error);
       lastError = error instanceof Error ? error : new Error('Unknown error');
       continue;
     }
   }
   
-  // NEW: Try server-side browser fetch as fallback
-  console.log('All CORS proxies failed, trying server-side browser fetch...');
-  
-  // Notify progress callback about server-side fetch
+  // Try server-side browser fetch as fallback
   if (onProgress) {
     onProgress('Using advanced browser engine (this may take a few seconds)...');
   }
@@ -273,14 +250,11 @@ const fetchWithProxies = async (url: string, corsProxies: ((url: string) => stri
     const data = await response.json();
     
     if (data.success) {
-      console.log('Successfully fetched via server-side browser, length:', data.content?.length);
       return data.content;
     } else {
       throw new Error(data.error || 'Server-side fetch failed');
     }
-  } catch (apiError) {
-    console.error('Server-side fetch also failed:', apiError);
-    // If server-side also fails, throw the original error
+  } catch (_apiError) {
     throw lastError || new Error('All fetch methods failed (proxies and server-side)');
   }
 };

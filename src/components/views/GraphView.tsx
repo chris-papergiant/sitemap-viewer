@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as d3 from 'd3';
 import { TreeNode } from '../../utils/treeBuilder';
 import { ZoomIn, ZoomOut, Maximize2, Home } from 'lucide-react';
@@ -10,24 +10,47 @@ interface GraphViewProps {
 
 const GraphView: React.FC<GraphViewProps> = ({ data, searchQuery }) => {
   const svgRef = useRef<SVGSVGElement>(null);
+  const tooltipRef = useRef<HTMLDivElement | null>(null);
   const [dimensions, setDimensions] = useState({ width: 1200, height: 600 });
   const [zoomLevel, setZoomLevel] = useState(1);
-  const zoomRef = useRef<any>(null);
+  const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
 
+  // Debounced resize handler
   useEffect(() => {
+    let rafId: number;
     const handleResize = () => {
-      const container = svgRef.current?.parentElement;
-      if (container) {
-        setDimensions({
-          width: container.clientWidth - 32, // Account for padding
-          height: Math.min(600, window.innerHeight - 300)
-        });
-      }
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const container = svgRef.current?.parentElement;
+        if (container) {
+          setDimensions({
+            width: container.clientWidth - 32,
+            height: Math.min(600, window.innerHeight - 300)
+          });
+        }
+      });
     };
 
     handleResize();
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      cancelAnimationFrame(rafId);
+    };
+  }, []);
+
+  // Create a persistent tooltip element once
+  useEffect(() => {
+    const el = document.createElement('div');
+    el.className = 'tooltip';
+    el.style.opacity = '0';
+    document.body.appendChild(el);
+    tooltipRef.current = el;
+
+    return () => {
+      el.remove();
+      tooltipRef.current = null;
+    };
   }, []);
 
   useEffect(() => {
@@ -60,15 +83,12 @@ const GraphView: React.FC<GraphViewProps> = ({ data, searchQuery }) => {
     const root = d3.hierarchy(data);
     const treeData = treeLayout(root);
 
-    const tooltip = d3.select('body').append('div')
-      .attr('class', 'tooltip')
-      .style('opacity', 0);
+    const tooltip = tooltipRef.current ? d3.select(tooltipRef.current) : null;
 
-    // Helper function to check if node matches search
-    const matchesSearch = (node: any) => {
+    const matchesSearch = (node: d3.HierarchyPointNode<TreeNode>) => {
       if (!searchQuery) return false;
       const query = searchQuery.toLowerCase();
-      return node.data.name.toLowerCase().includes(query) || 
+      return node.data.name.toLowerCase().includes(query) ||
              node.data.path.toLowerCase().includes(query);
     };
 
@@ -82,7 +102,7 @@ const GraphView: React.FC<GraphViewProps> = ({ data, searchQuery }) => {
         .y(d => d.x))
       .style('stroke', d => {
         if (searchQuery && (matchesSearch(d.source) || matchesSearch(d.target))) {
-          return '#DB1B5C'; // Pink for search matches
+          return '#DB1B5C';
         }
         return '#ccc';
       })
@@ -101,35 +121,26 @@ const GraphView: React.FC<GraphViewProps> = ({ data, searchQuery }) => {
 
     const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
 
-    // Draw node circles
     node.append('circle')
-      .attr('r', d => {
-        if (matchesSearch(d)) return 8;
-        return 6;
-      })
+      .attr('r', d => matchesSearch(d) ? 8 : 6)
       .style('fill', d => {
-        if (matchesSearch(d)) return '#DB1B5C'; // Pink for search matches
+        if (matchesSearch(d)) return '#DB1B5C';
         return d.depth === 0 ? '#DB1B5C' : colorScale(String(d.depth));
       })
-      .style('stroke', d => {
-        if (matchesSearch(d)) return '#BE185D';
-        return '#DB1B5C';
-      })
-      .style('stroke-width', d => {
-        if (matchesSearch(d)) return 2;
-        return 1.5;
-      })
+      .style('stroke', d => matchesSearch(d) ? '#BE185D' : '#DB1B5C')
+      .style('stroke-width', d => matchesSearch(d) ? 2 : 1.5)
       .style('cursor', 'pointer')
-      .on('click', (_event, d: any) => {
+      .on('click', (_event, d) => {
         if (d.data.data?.loc) {
           window.open(d.data.data.loc, '_blank');
         }
       })
-      .on('mouseover', (event, d: any) => {
+      .on('mouseover', (event, d) => {
+        if (!tooltip) return;
         tooltip.transition()
           .duration(200)
           .style('opacity', .9);
-        
+
         const tooltipContent = `
           <strong>${d.data.name}</strong><br/>
           ${d.data.data?.loc ? `<span style="font-size: 11px;">URL: ${d.data.data.loc}</span><br/>` : ''}
@@ -137,41 +148,30 @@ const GraphView: React.FC<GraphViewProps> = ({ data, searchQuery }) => {
           ${d.data.data?.changefreq ? `Change Frequency: ${d.data.data.changefreq}<br/>` : ''}
           ${d.data.data?.priority !== undefined ? `Priority: ${d.data.data.priority}` : ''}
         `;
-        
+
         tooltip.html(tooltipContent)
           .style('left', (event.pageX + 10) + 'px')
           .style('top', (event.pageY - 28) + 'px');
       })
       .on('mouseout', () => {
+        if (!tooltip) return;
         tooltip.transition()
           .duration(500)
           .style('opacity', 0);
       });
 
-    // Draw node labels
     node.append('text')
       .attr('dy', '.35em')
       .attr('x', d => d.children ? -13 : 13)
       .style('text-anchor', d => d.children ? 'end' : 'start')
       .text(d => d.data.name)
-      .style('font-size', d => {
-        if (matchesSearch(d)) return '14px';
-        return '12px';
-      })
-      .style('font-weight', d => {
-        if (matchesSearch(d)) return 'bold';
-        return 'normal';
-      })
-      .style('fill', d => {
-        if (matchesSearch(d)) return '#BE185D';
-        return '#333';
-      });
+      .style('font-size', d => matchesSearch(d) ? '14px' : '12px')
+      .style('font-weight', d => matchesSearch(d) ? 'bold' : 'normal')
+      .style('fill', d => matchesSearch(d) ? '#BE185D' : '#333');
 
-    // Highlight search matches
     if (searchQuery) {
       const matches = treeData.descendants().filter(matchesSearch);
       if (matches.length > 0) {
-        // Auto-zoom to show first match
         const firstMatch = matches[0];
         const scale = 1.5;
         svg.transition()
@@ -185,17 +185,13 @@ const GraphView: React.FC<GraphViewProps> = ({ data, searchQuery }) => {
           );
       }
     }
-
-    return () => {
-      tooltip.remove();
-    };
   }, [data, dimensions, searchQuery]);
 
-  const handleZoom = (direction: 'in' | 'out' | 'reset' | 'fit') => {
+  const handleZoom = useCallback((direction: 'in' | 'out' | 'reset' | 'fit') => {
     if (!svgRef.current || !zoomRef.current) return;
-    
+
     const svg = d3.select(svgRef.current);
-    
+
     switch (direction) {
       case 'in':
         svg.transition().duration(300).call(zoomRef.current.scaleBy, 1.3);
@@ -206,17 +202,14 @@ const GraphView: React.FC<GraphViewProps> = ({ data, searchQuery }) => {
       case 'reset':
         svg.transition().duration(750).call(zoomRef.current.transform, d3.zoomIdentity);
         break;
-      case 'fit':
-        // Calculate bounds and fit to view
+      case 'fit': {
         const bounds = (svgRef.current.querySelector('g') as SVGGElement)?.getBBox();
         if (bounds) {
           const fullWidth = dimensions.width;
           const fullHeight = dimensions.height;
-          const width = bounds.width;
-          const height = bounds.height;
-          const midX = bounds.x + width / 2;
-          const midY = bounds.y + height / 2;
-          const scale = 0.9 / Math.max(width / fullWidth, height / fullHeight);
+          const midX = bounds.x + bounds.width / 2;
+          const midY = bounds.y + bounds.height / 2;
+          const scale = 0.9 / Math.max(bounds.width / fullWidth, bounds.height / fullHeight);
           svg.transition().duration(750).call(
             zoomRef.current.transform,
             d3.zoomIdentity
@@ -226,8 +219,9 @@ const GraphView: React.FC<GraphViewProps> = ({ data, searchQuery }) => {
           );
         }
         break;
+      }
     }
-  };
+  }, [dimensions]);
 
   return (
     <div className="bg-white relative">
@@ -261,11 +255,11 @@ const GraphView: React.FC<GraphViewProps> = ({ data, searchQuery }) => {
           <Home className="w-4 h-4" />
         </button>
       </div>
-      
+
       <div className="absolute bottom-4 left-4 z-10 text-xs text-gray-600 bg-white px-2 py-1 rounded border border-gray-200">
         Zoom: {Math.round(zoomLevel * 100)}%
       </div>
-      
+
       <div className="p-6">
         <svg
           ref={svgRef}
