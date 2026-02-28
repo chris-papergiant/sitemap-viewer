@@ -34,7 +34,7 @@
 
 | # | Job Statement | Type | Fulfillment | Mapped Features |
 |---|---------------|------|-------------|-----------------|
-| 5 | **When** I'm working on a website, **I want to** verify all expected pages exist and are reachable, **so I can** catch coverage gaps before users or search engines do | Functional | Partially served | Crawler discovers pages, but no comparison against expected list |
+| 5 | **When** I'm working on a website, **I want to** verify all expected pages exist and are reachable, **so I can** catch coverage gaps before users or search engines do | Functional | Well served | URL verification spot-checks accessibility, structural analysis flags issues |
 | 6 | **When** I inherit or join a project, **I want to** quickly understand the site's URL structure, **so I can** orient myself without reading all the code | Functional | Fully served | Explorer/Columns/Graph views show hierarchy clearly |
 
 #### Jobs to Serve
@@ -50,7 +50,7 @@
 | # | Job Statement | Type | Fulfillment | Mapped Features |
 |---|---------------|------|-------------|-----------------|
 | 8 | **When** I'm planning a site restructure, **I want to** see the current information architecture visually, **so I can** identify what to reorganize and communicate changes to stakeholders | Functional | Fully served | Three visualization modes cover this well |
-| 9 | **When** I'm auditing content, **I want to** see page counts and hierarchy by section, **so I can** understand where content is concentrated or thin | Functional | Partially served | Total count shown, but no per-section breakdown |
+| 9 | **When** I'm auditing content, **I want to** see page counts and hierarchy by section, **so I can** understand where content is concentrated or thin | Functional | Well served | Content Distribution chart shows per-section page counts with bar visualization |
 
 #### Jobs to Serve
 
@@ -65,7 +65,7 @@
 | # | Job Statement | Type | Fulfillment | Mapped Features |
 |---|---------------|------|-------------|-----------------|
 | 11 | **When** someone asks "how big is our website?", **I want to** get a page count and structural overview instantly, **so I can** answer confidently without bothering my dev team | Emotional | Fully served | Stats + tree view answer this fast |
-| 12 | **When** I'm evaluating my website's health, **I want to** see if pages are being updated and none are missing, **so I can** feel in control of my digital presence | Emotional | Partially served | Shows lastmod but no historical comparison |
+| 12 | **When** I'm evaluating my website's health, **I want to** see if pages are being updated and none are missing, **so I can** feel in control of my digital presence | Emotional | Well served | Stale content detection, health score, URL verification |
 
 ## Opportunity Map
 
@@ -74,11 +74,11 @@
 | 4 | Present site structure to clients | SEO | 5 | 3 | **2** |
 | 3 | Find structural issues in architecture | SEO | 5 | 4 | **1** |
 | 10 | Show interactive visuals to non-tech stakeholders | Content/UX | 4 | 3 | **1** |
-| 9 | See page counts by section | Content/UX | 4 | 2 | **2** |
-| 1 | Map unfamiliar competitor site structure | SEO | 5 | 3 | **2** |
-| 7 | Confirm sitemap accuracy post-deploy | Dev/QA | 3 | 1 | **2** |
-| 5 | Verify all pages exist and are reachable | Dev/QA | 4 | 3 | **1** |
-| 12 | Check if pages are updated / none missing | Owner | 3 | 2 | **1** |
+| 9 | See page counts by section | Content/UX | 4 | 4 | **0** |
+| 1 | Map unfamiliar competitor site structure | SEO | 5 | 4 | **1** |
+| 7 | Confirm sitemap accuracy post-deploy | Dev/QA | 3 | 3 | **0** |
+| 5 | Verify all pages exist and are reachable | Dev/QA | 4 | 4 | **0** |
+| 12 | Check if pages are updated / none missing | Owner | 3 | 3 | **0** |
 | 2 | Quick structural overview, no install | SEO | 5 | 5 | **0** |
 | 6 | Understand URL structure on new project | Dev/QA | 4 | 4 | **0** |
 | 8 | See current IA visually for restructure planning | Content/UX | 4 | 4 | **0** |

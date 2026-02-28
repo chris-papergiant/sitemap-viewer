@@ -8,19 +8,16 @@
 | 2026-02-28 | #3 Find structural issues in architecture | 2 → 4 |
 | 2026-02-28 | #10 Show interactive visuals to non-tech stakeholders | 1 → 3 |
 | 2026-02-28 | #9 See page counts by section | 2 → 4 |
+| 2026-02-28 | #1 Map unfamiliar competitor site structure | 3 → 4 |
+| 2026-02-28 | #7 Confirm sitemap accuracy post-deploy | 1 → 3 |
+| 2026-02-28 | #5 Verify all pages exist and are reachable | 3 → 4 |
+| 2026-02-28 | #12 Check if pages are updated / none missing | 2 → 3 |
 
 ## In Progress
 | Started | Job | Notes |
 |---------|-----|-------|
-| 2026-02-28 | #1 Map unfamiliar competitor site structure | Improved by #3 and #4 |
-| 2026-02-28 | #7 Confirm sitemap accuracy post-deploy | Sitemap vs crawl comparison |
 
 ## Up Next
 | # | Job | User Type | Opportunity |
 |---|-----|-----------|-------------|
-| 10 | Show interactive visuals to non-tech stakeholders | Content/UX | 3 |
-
-| 1 | Map unfamiliar competitor site structure | SEO | 2 |
-| 7 | Confirm sitemap accuracy post-deploy | Dev/QA | 2 |
-| 5 | Verify all pages exist and are reachable | Dev/QA | 1 |
-| 12 | Check if pages are updated / none missing | Owner | 1 |
+*(All opportunities addressed — no remaining gaps with score > 0)*
