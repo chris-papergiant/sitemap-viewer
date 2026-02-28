@@ -75,42 +75,44 @@ export async function verifySitemapUrls(
       report.checked++;
     });
 
-    onProgress?.(report);
+    onProgress?.({ ...report, results: [...report.results] });
   }
 
   report.isComplete = true;
-  onProgress?.(report);
+  onProgress?.({ ...report, results: [...report.results] });
   return report;
 }
 
 async function checkUrl(url: string): Promise<VerificationResult> {
   for (const proxy of CORS_PROXIES) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
-
       const response = await fetch(proxy + encodeURIComponent(url), {
         method: 'GET',
         signal: controller.signal,
         headers: { 'Range': 'bytes=0-0' }, // Only fetch 1 byte
       });
 
-      clearTimeout(timeout);
+      const status = response.status;
+      response.body?.cancel();
 
-      if (response.ok || response.status === 206) {
-        return { url, status: 'ok', statusCode: 200 };
+      if (response.ok || status === 206) {
+        return { url, status: 'ok', statusCode: status };
       }
-      if (response.status >= 300 && response.status < 400) {
+      if (status >= 300 && status < 400) {
         return {
           url,
           status: 'redirect',
-          statusCode: response.status,
+          statusCode: status,
           redirectUrl: response.headers.get('location') || undefined,
         };
       }
-      return { url, status: 'error', statusCode: response.status };
+      return { url, status: 'error', statusCode: status };
     } catch {
       continue;
+    } finally {
+      clearTimeout(timeout);
     }
   }
   return { url, status: 'error', error: 'All proxies failed' };

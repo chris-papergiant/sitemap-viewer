@@ -29,6 +29,7 @@ function healthBg(score: number): string {
 
 const StructuralInsights: React.FC<StructuralInsightsProps> = ({ treeData, urls }) => {
   const [expanded, setExpanded] = useState(false);
+  const [showAllSections, setShowAllSections] = useState(false);
   const report: StructuralReport = useMemo(
     () => analyzeStructure(treeData, urls),
     [treeData, urls]
@@ -36,7 +37,7 @@ const StructuralInsights: React.FC<StructuralInsightsProps> = ({ treeData, urls 
 
   if (report.issues.length === 0 && report.sections.length === 0) return null;
 
-  const topSections = report.sections.slice(0, 6);
+  const displayedSections = showAllSections ? report.sections : report.sections.slice(0, 6);
   const totalPages = report.sections.reduce((sum, s) => sum + s.pageCount, 0);
 
   return (
@@ -59,7 +60,7 @@ const StructuralInsights: React.FC<StructuralInsightsProps> = ({ treeData, urls 
             <span className={`text-3xl font-bold ${healthColor(report.healthScore)}`}>
               {report.healthScore}
             </span>
-            <span className="text-sm text-gray-500 ml-1">/ 100</span>
+            <span className="text-sm text-gray-500">/100</span>
           </div>
         </div>
 
@@ -113,11 +114,11 @@ const StructuralInsights: React.FC<StructuralInsightsProps> = ({ treeData, urls 
       </div>
 
       {/* Section Breakdown */}
-      {topSections.length > 0 && (
+      {displayedSections.length > 0 && (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Content Distribution</h3>
           <div className="space-y-3">
-            {topSections.map(section => {
+            {displayedSections.map(section => {
               const pct = totalPages > 0 ? (section.pageCount / totalPages) * 100 : 0;
               return (
                 <div key={section.path}>
@@ -138,10 +139,21 @@ const StructuralInsights: React.FC<StructuralInsightsProps> = ({ treeData, urls 
                 </div>
               );
             })}
-            {report.sections.length > 6 && (
-              <p className="text-xs text-gray-400 text-center mt-2">
+            {!showAllSections && report.sections.length > 6 && (
+              <button
+                onClick={() => setShowAllSections(true)}
+                className="text-sm text-primary-pink hover:underline mt-2 mx-auto block"
+              >
                 +{report.sections.length - 6} more sections
-              </p>
+              </button>
+            )}
+            {showAllSections && report.sections.length > 6 && (
+              <button
+                onClick={() => setShowAllSections(false)}
+                className="text-sm text-primary-pink hover:underline mt-2 mx-auto block"
+              >
+                Show fewer sections
+              </button>
             )}
           </div>
         </div>

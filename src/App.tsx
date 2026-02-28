@@ -83,6 +83,7 @@ function App() {
     setProgressSubMessage('');
     setIsVisualisationMode(true);
     setCurrentUrl(url);
+    setVerificationReport(null);
     isCompleteRef.current = false;
 
     // Track sitemap search event
@@ -249,6 +250,7 @@ function App() {
     setIsCrawling(true);
     setIsVisualisationMode(true);
     setCurrentUrl(url);
+    setVerificationReport(null);
     
     // Initialize crawler with detailed logging
     console.log('%c📊 Initializing crawler with callback...', 'color: #4ECDC4');
@@ -352,6 +354,19 @@ function App() {
     setIsCrawling(false);
   };
 
+  const handleVerifyUrls = async () => {
+    if (isVerifying || !urls.length) return;
+    setIsVerifying(true);
+    setVerificationReport(null);
+    try {
+      await verifySitemapUrls(urls, 20, (report) => {
+        setVerificationReport(report);
+      });
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
   // Load from URL parameters on initial load
   useEffect(() => {
     const { url, view, search } = getUrlParams();
@@ -399,9 +414,8 @@ function App() {
       {!isVisualisationMode && (
         <header 
           className="section-primary border-b border-neutral-100"
-          role="banner"
         >
-          <div className="max-w-7xl mx-auto px-content-h py-8 text-center">
+          <div className="max-w-7xl mx-auto px-content-h py-6 text-center">
             <div className="flex flex-col items-center">
               <div className="w-20 h-20 bg-white rounded-lg flex items-center justify-center mb-6 text-primary-pink border border-gray-200">
                 <Logo size="large" />
@@ -419,8 +433,7 @@ function App() {
 
       <main 
         id="main-content" 
-        className="transition-all duration-700 ease-in-out" 
-        role="main"
+        className="transition-all duration-700 ease-in-out"
         tabIndex={-1}
       >
         {!isVisualisationMode && (
@@ -555,11 +568,11 @@ function App() {
                     </Button>
                   </div>
                   
-                  <h2 className="text-card-title font-serif absolute left-1/2 transform -translate-x-1/2">
+                  <h2 className="text-card-title font-serif absolute left-1/2 transform -translate-x-1/2 pointer-events-none hidden md:block">
                     {currentUrl ? (currentUrl.includes('://') ? new URL(currentUrl).hostname : currentUrl) : 'Sitemap Analysis'}
                   </h2>
                   
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                     {/* Crawl status and controls */}
                     {isCrawling && crawlState && (
                       <div className="flex items-center gap-3">
@@ -600,19 +613,8 @@ function App() {
                     
                     {/* Export & verify buttons */}
                     <button
-                      onClick={async () => {
-                        if (isVerifying || !urls.length) return;
-                        setIsVerifying(true);
-                        setVerificationReport(null);
-                        try {
-                          await verifySitemapUrls(urls, 20, (report) => {
-                            setVerificationReport({ ...report });
-                          });
-                        } finally {
-                          setIsVerifying(false);
-                        }
-                      }}
-                      className={`p-2 border border-gray-300 rounded-lg shadow-sm transition-colors ${
+                      onClick={handleVerifyUrls}
+                      className={`hidden sm:flex p-2 border border-gray-300 rounded-lg shadow-sm transition-colors ${
                         isVerifying ? 'bg-amber-50 border-amber-300' : 'bg-white hover:bg-gray-50'
                       }`}
                       title={isVerifying ? 'Verifying...' : 'Verify URLs are accessible'}
@@ -630,7 +632,7 @@ function App() {
                           setTimeout(() => setLinkCopied(false), 2000);
                         }
                       }}
-                      className="p-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors"
+                      className="hidden sm:flex p-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors"
                       title={linkCopied ? 'Copied!' : 'Copy share link'}
                       aria-label="Copy shareable link"
                     >
@@ -647,53 +649,34 @@ function App() {
                           exportJSON(treeData, urls, getSiteName());
                         }
                       }}
-                      className="p-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors"
+                      className="hidden sm:flex p-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors"
                       title="Download as JSON"
                       aria-label="Download sitemap as JSON"
                     >
                       <FileJson className="w-4 h-4 text-gray-600" />
                     </button>
                     <button
-                    onClick={() => {
-                      if (treeData) {
-                        const siteName = getSiteName();
+                      onClick={() => {
+                        if (treeData) {
+                          const siteName = getSiteName();
 
-                        // Track CSV download event
-                        track('csv_downloaded', {
-                          domain: siteName,
-                          urlCount: urls.length,
-                          source: isCrawling ? 'crawler' : 'sitemap',
-                          timestamp: new Date().toISOString()
-                        });
+                          // Track CSV download event
+                          track('csv_downloaded', {
+                            domain: siteName,
+                            urlCount: urls.length,
+                            source: isCrawling ? 'crawler' : 'sitemap',
+                            timestamp: new Date().toISOString()
+                          });
 
-                        exportTreeToCSV(treeData, siteName);
-                      }
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      padding: '8px 16px',
-                      backgroundColor: '#DB1B5C',
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      cursor: 'pointer',
-                      transition: 'opacity 0.2s'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.opacity = '0.9';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.opacity = '1';
-                    }}
-                    aria-label="Download sitemap as CSV"
-                  >
-                    <Download className="w-4 h-4" style={{ color: '#ffffff' }} />
-                    <span style={{ color: '#ffffff', opacity: 1 }}>Download CSV</span>
-                  </button>
+                          exportTreeToCSV(treeData, siteName);
+                        }
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 bg-primary-pink text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
+                      aria-label="Download sitemap as CSV"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Download CSV</span>
+                    </button>
                   </div>
                 </div>
                 
@@ -746,7 +729,7 @@ function App() {
               <div className="bg-gray-50 py-12">
                 <div className="max-w-7xl mx-auto px-6">
                   <div className="text-center mb-10">
-                    <h2 className="text-3xl font-bold text-gray-900 mb-3">
+                    <h2 className="text-card-title font-serif text-gray-900 mb-3">
                       Site Overview
                     </h2>
                     <p className="text-gray-600 max-w-2xl mx-auto">
@@ -793,14 +776,17 @@ function App() {
                           <p className="text-xs text-amber-600">Redirects</p>
                         </div>
                       </div>
-                      {verificationReport.results.filter(r => r.status === 'error').length > 0 && (
-                        <div className="space-y-2">
-                          <p className="text-sm font-medium text-red-700">Failed URLs:</p>
-                          {verificationReport.results.filter(r => r.status === 'error').map((r, i) => (
-                            <p key={i} className="text-xs font-mono text-red-600 truncate">{r.url}</p>
-                          ))}
-                        </div>
-                      )}
+                      {(() => {
+                        const errorResults = verificationReport.results.filter(r => r.status === 'error');
+                        return errorResults.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium text-red-700">Failed URLs:</p>
+                            {errorResults.map((r, i) => (
+                              <p key={i} className="text-xs font-mono text-red-600 truncate">{r.url}</p>
+                            ))}
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
@@ -853,7 +839,7 @@ function App() {
               <section className="bg-gray-50 py-12">
                 <div className="max-w-7xl mx-auto px-6">
                   <div className="text-center mb-10">
-                    <h2 className="text-3xl font-bold text-gray-900 mb-3">
+                    <h2 className="text-card-title font-serif text-gray-900 mb-3">
                       Site Overview
                     </h2>
                     <p className="text-gray-600 max-w-2xl mx-auto">
@@ -905,7 +891,7 @@ function App() {
         isVisualisationMode 
           ? 'bg-gray-900 text-white py-12 mt-auto' 
           : 'section section-tertiary'
-      }`} role="contentinfo">
+      }`}>
           <div className="max-w-7xl mx-auto">
             <div className="mb-12">
               <div className="flex items-center gap-3 mb-4">

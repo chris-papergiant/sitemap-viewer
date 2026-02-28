@@ -62,7 +62,9 @@ const SitemapFetcher: React.FC<SitemapFetcherProps> = ({ onFetch, isLoading }) =
   const handleExampleClick = (exampleUrl: string) => {
     setUrl(exampleUrl);
     setError('');
-    inputRef.current?.focus();
+    // Normalize and submit directly
+    const normalizedUrl = `https://${exampleUrl}`;
+    onFetch(normalizedUrl);
   };
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,6 +77,7 @@ const SitemapFetcher: React.FC<SitemapFetcherProps> = ({ onFetch, isLoading }) =
       <div className="card p-12">
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="space-y-3">
+            <label htmlFor="sitemap-url" className="sr-only">Website URL</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <Search className="h-5 w-5 text-neutral-400" aria-hidden="true" />
@@ -90,7 +93,7 @@ const SitemapFetcher: React.FC<SitemapFetcherProps> = ({ onFetch, isLoading }) =
                   error ? 'border-error' : ''
                 }`}
                 disabled={isLoading}
-                aria-describedby={error ? 'url-error' : 'url-help'}
+                aria-describedby={error ? 'url-error' : undefined}
                 aria-invalid={!!error}
                 autoComplete="url"
               />
@@ -120,57 +123,13 @@ const SitemapFetcher: React.FC<SitemapFetcherProps> = ({ onFetch, isLoading }) =
             )}
           </div>
 
-          <div style={{ background: '#000000', borderRadius: '0', width: '100%' }}>
-            <button
-              type="submit"
-              disabled={isLoading || !url.trim()}
-              style={{
-                background: '#000000',
-                backgroundColor: '#000000',
-                backgroundImage: 'none',
-                color: '#ffffff',
-                border: 'none',
-                outline: 'none',
-                borderRadius: '0',
-                padding: '1rem 2rem',
-                fontSize: '1.125rem',
-                fontWeight: '700',
-                minHeight: '3.25rem',
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: isLoading || !url.trim() ? 'not-allowed' : 'pointer',
-                opacity: 1,
-                transition: 'all 0.3s ease',
-                WebkitAppearance: 'none',
-                MozAppearance: 'none',
-                appearance: 'none',
-                boxShadow: 'none'
-              }}
-              onMouseEnter={(e) => {
-                if (!isLoading && url.trim()) {
-                  e.currentTarget.style.background = '#333333';
-                  e.currentTarget.style.backgroundColor = '#333333';
-                  if (e.currentTarget.parentElement) {
-                    e.currentTarget.parentElement.style.background = '#333333';
-                  }
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#000000';
-                e.currentTarget.style.backgroundColor = '#000000';
-                if (e.currentTarget.parentElement) {
-                  e.currentTarget.parentElement.style.background = '#000000';
-                }
-              }}
-              aria-describedby="submit-help"
-            >
-              <span style={{ color: '#ffffff', fontSize: 'inherit', fontWeight: 'inherit', opacity: 1, textShadow: 'none' }}>
-                {isLoading ? 'Visualising your sitemap...' : 'Visualise Sitemap'}
-              </span>
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={isLoading || !url.trim()}
+            className="bg-black text-white rounded-lg px-6 py-3 hover:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full font-medium"
+          >
+            {isLoading ? 'Visualising your sitemap...' : 'Visualise Sitemap'}
+          </button>
         </form>
 
         <div className="mt-8 pt-8 border-t border-neutral-200">
@@ -183,27 +142,7 @@ const SitemapFetcher: React.FC<SitemapFetcherProps> = ({ onFetch, isLoading }) =
                 onClick={() => handleExampleClick(example)}
                 disabled={isLoading}
                 aria-label={`Try example URL: ${example}`}
-                style={{
-                  padding: '0.5rem 1rem',
-                  fontSize: '0.875rem',
-                  backgroundColor: 'transparent',
-                  color: '#DB1B5C',
-                  border: '1px solid #DB1B5C',
-                  borderRadius: '9999px',
-                  cursor: isLoading ? 'not-allowed' : 'pointer',
-                  opacity: isLoading ? 0.6 : 1,
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => {
-                  if (!isLoading) {
-                    e.currentTarget.style.backgroundColor = '#DB1B5C';
-                    e.currentTarget.style.color = '#ffffff';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.color = '#DB1B5C';
-                }}
+                className="px-4 py-2 text-sm bg-transparent text-primary-pink border border-primary-pink rounded-full hover:bg-primary-pink hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {example}
               </button>

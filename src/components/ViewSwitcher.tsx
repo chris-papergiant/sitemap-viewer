@@ -101,7 +101,7 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           {/* Clean tab-style view switcher */}
           <div className="flex items-center gap-4">
-            <div className="flex bg-gray-100 rounded-full p-1">
+            <div className="flex bg-gray-100 rounded-full p-1" role="tablist" aria-label="View options">
               {views.map((view) => {
                 const isActive = currentView === view.type;
                 
@@ -158,7 +158,7 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
                   className="pl-9 pr-8 py-2 w-48 sm:w-56 text-sm bg-gray-50 border border-gray-200 
                     rounded-full placeholder-gray-400 text-gray-900
                     focus:outline-none focus:ring-2 focus:ring-primary-pink/20 focus:border-primary-pink transition-all"
-                  aria-label="Search URLs"
+                  aria-label="Filter URLs"
                 />
                 {localSearchQuery && (
                   <button
