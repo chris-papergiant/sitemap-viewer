@@ -13,14 +13,18 @@ import { fetchSitemap, parseSitemapXML, SitemapEntry } from './utils/sitemapPars
 import { buildTreeFromUrls, TreeNode } from './utils/treeBuilder';
 import { exportTreeToCSV } from './utils/csvExporter';
 import ProgressiveCrawler, { CrawlState } from './utils/progressiveCrawler';
-import { Download, Play, Pause, Square } from 'lucide-react';
+import { Download, Play, Pause, Square, FileJson, Link, Check } from 'lucide-react';
+import { exportJSON, copyShareLink } from './utils/exportUtils';
 
 // URL parameter utilities for shareable links
-const updateUrlParams = (url: string, view: ViewType) => {
+const updateUrlParams = (url: string, view: ViewType, search?: string) => {
   const params = new URLSearchParams();
   params.set('url', encodeURIComponent(url));
   params.set('view', view);
-  
+  if (search) {
+    params.set('search', encodeURIComponent(search));
+  }
+
   const newUrl = `${window.location.pathname}?${params.toString()}`;
   window.history.replaceState({}, '', newUrl);
 };
@@ -29,7 +33,8 @@ const getUrlParams = () => {
   const params = new URLSearchParams(window.location.search);
   return {
     url: params.get('url') ? decodeURIComponent(params.get('url')!) : null,
-    view: (params.get('view') as ViewType) || 'explorer'
+    view: (params.get('view') as ViewType) || 'explorer',
+    search: params.get('search') ? decodeURIComponent(params.get('search')!) : ''
   };
 };
 
@@ -47,8 +52,22 @@ function App() {
   const [currentUrl, setCurrentUrl] = useState('');
   const [isCrawling, setIsCrawling] = useState(false);
   const [crawlState, setCrawlState] = useState<CrawlState | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
   const crawlerRef = useRef<ProgressiveCrawler | null>(null);
   const isCompleteRef = useRef(false);
+
+  const getSiteName = () => {
+    try {
+      if (currentUrl && currentUrl.includes('://')) {
+        return new URL(currentUrl).hostname;
+      } else if (currentUrl) {
+        return currentUrl.replace(/[^a-z0-9]/gi, '_');
+      }
+    } catch {
+      // fall through
+    }
+    return 'sitemap';
+  };
 
   const handleFetchSitemap = async (url: string) => {
     setIsLoading(true);
@@ -331,9 +350,10 @@ function App() {
 
   // Load from URL parameters on initial load
   useEffect(() => {
-    const { url, view } = getUrlParams();
+    const { url, view, search } = getUrlParams();
     if (url) {
       setCurrentView(view);
+      if (search) setSearchQuery(search);
       handleFetchSitemap(url);
     }
   }, []);
@@ -354,9 +374,16 @@ function App() {
     }
     
     if (currentUrl) {
-      updateUrlParams(currentUrl, view);
+      updateUrlParams(currentUrl, view, searchQuery);
     }
   };
+
+  // Persist search query in URL
+  useEffect(() => {
+    if (currentUrl && treeData) {
+      updateUrlParams(currentUrl, currentView, searchQuery);
+    }
+  }, [searchQuery]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -567,21 +594,44 @@ function App() {
                       </div>
                     )}
                     
-                    {/* Download CSV button */}
+                    {/* Export buttons */}
+                    <button
+                      onClick={async () => {
+                        const success = await copyShareLink();
+                        if (success) {
+                          setLinkCopied(true);
+                          track('link_copied', { domain: getSiteName() });
+                          setTimeout(() => setLinkCopied(false), 2000);
+                        }
+                      }}
+                      className="p-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors"
+                      title={linkCopied ? 'Copied!' : 'Copy share link'}
+                      aria-label="Copy shareable link"
+                    >
+                      {linkCopied ? (
+                        <Check className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <Link className="w-4 h-4 text-gray-600" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (treeData) {
+                          track('json_downloaded', { domain: getSiteName(), urlCount: urls.length });
+                          exportJSON(treeData, urls, getSiteName());
+                        }
+                      }}
+                      className="p-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors"
+                      title="Download as JSON"
+                      aria-label="Download sitemap as JSON"
+                    >
+                      <FileJson className="w-4 h-4 text-gray-600" />
+                    </button>
                     <button
                     onClick={() => {
                       if (treeData) {
-                        let siteName = 'sitemap';
-                        try {
-                          if (currentUrl && currentUrl.includes('://')) {
-                            siteName = new URL(currentUrl).hostname;
-                          } else if (currentUrl) {
-                            siteName = currentUrl.replace(/[^a-z0-9]/gi, '_');
-                          }
-                        } catch (e) {
-                          siteName = 'sitemap';
-                        }
-                        
+                        const siteName = getSiteName();
+
                         // Track CSV download event
                         track('csv_downloaded', {
                           domain: siteName,
@@ -589,7 +639,7 @@ function App() {
                           source: isCrawling ? 'crawler' : 'sitemap',
                           timestamp: new Date().toISOString()
                         });
-                        
+
                         exportTreeToCSV(treeData, siteName);
                       }
                     }}
@@ -616,7 +666,7 @@ function App() {
                     aria-label="Download sitemap as CSV"
                   >
                     <Download className="w-4 h-4" style={{ color: '#ffffff' }} />
-                    <span style={{ color: '#ffffff', opacity: 1 }}>Download as CSV</span>
+                    <span style={{ color: '#ffffff', opacity: 1 }}>Download CSV</span>
                   </button>
                   </div>
                 </div>
@@ -725,7 +775,7 @@ function App() {
                 )}
                 {currentView === 'graph' && (
                   <div className="animate-fade-in">
-                    <GraphView data={treeData} searchQuery={searchQuery} />
+                    <GraphView data={treeData} searchQuery={searchQuery} siteName={getSiteName()} />
                   </div>
                 )}
                 </div>

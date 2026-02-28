@@ -1,14 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { TreeNode } from '../../utils/treeBuilder';
-import { ZoomIn, ZoomOut, Maximize2, Home } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, Home, Image, FileDown } from 'lucide-react';
+import { exportSVG, exportPNG } from '../../utils/exportUtils';
 
 interface GraphViewProps {
   data: TreeNode;
   searchQuery?: string;
+  siteName?: string;
 }
 
-const GraphView: React.FC<GraphViewProps> = ({ data, searchQuery }) => {
+const GraphView: React.FC<GraphViewProps> = ({ data, searchQuery, siteName = 'sitemap' }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dimensions, setDimensions] = useState({ width: 1200, height: 600 });
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -259,6 +261,33 @@ const GraphView: React.FC<GraphViewProps> = ({ data, searchQuery }) => {
           title="Reset Zoom"
         >
           <Home className="w-4 h-4" />
+        </button>
+
+        <div className="border-t border-gray-200 my-1" />
+
+        <button
+          onClick={() => {
+            if (svgRef.current) {
+              const safeName = siteName.replace(/[^a-z0-9]/gi, '_');
+              exportSVG(svgRef.current, `${safeName}_graph.svg`);
+            }
+          }}
+          className="p-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm"
+          title="Export as SVG"
+        >
+          <FileDown className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => {
+            if (svgRef.current) {
+              const safeName = siteName.replace(/[^a-z0-9]/gi, '_');
+              exportPNG(svgRef.current, `${safeName}_graph.png`);
+            }
+          }}
+          className="p-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm"
+          title="Export as PNG"
+        >
+          <Image className="w-4 h-4" />
         </button>
       </div>
       
