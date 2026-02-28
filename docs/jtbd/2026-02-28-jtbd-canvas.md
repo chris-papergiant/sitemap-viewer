@@ -56,7 +56,7 @@
 
 | # | Job Statement | Type | Priority | Notes |
 |---|---------------|------|----------|-------|
-| 10 | **When** I need to explain site structure to non-technical stakeholders, **I want to** show an interactive visual, **so I can** get alignment without jargon | Social | High | URL sharing exists but views aren't self-explanatory for non-users |
+| 10 | **When** I need to explain site structure to non-technical stakeholders, **I want to** show an interactive visual, **so I can** get alignment without jargon | Social | High | Contextual descriptions on all views, shareable URLs with search state |
 
 ### Website Owner / Manager
 
@@ -73,7 +73,7 @@
 |---|-----|-----------|------------|-------------|-------------|
 | 4 | Present site structure to clients | SEO | 5 | 3 | **2** |
 | 3 | Find structural issues in architecture | SEO | 5 | 4 | **1** |
-| 10 | Show interactive visuals to non-tech stakeholders | Content/UX | 4 | 1 | **3** |
+| 10 | Show interactive visuals to non-tech stakeholders | Content/UX | 4 | 3 | **1** |
 | 9 | See page counts by section | Content/UX | 4 | 2 | **2** |
 | 1 | Map unfamiliar competitor site structure | SEO | 5 | 3 | **2** |
 | 7 | Confirm sitemap accuracy post-deploy | Dev/QA | 3 | 1 | **2** |

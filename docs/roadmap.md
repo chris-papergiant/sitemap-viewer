@@ -6,11 +6,11 @@
 |------|-----|----------------------------|
 | 2026-02-28 | #4 Present site structure to clients | 1 → 3 |
 | 2026-02-28 | #3 Find structural issues in architecture | 2 → 4 |
+| 2026-02-28 | #10 Show interactive visuals to non-tech stakeholders | 1 → 3 |
 
 ## In Progress
 | Started | Job | Notes |
 |---------|-----|-------|
-| 2026-02-28 | #10 Show interactive visuals to non-tech stakeholders | Contextual descriptions, clearer labels for stakeholder sharing |
 
 ## Up Next
 | # | Job | User Type | Opportunity |
