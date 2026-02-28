@@ -26,7 +26,7 @@
 
 | # | Job Statement | Type | Priority | Notes |
 |---|---------------|------|----------|-------|
-| 4 | **When** I'm presenting to a client, **I want to** show a visual representation of their site structure, **so I can** make my findings tangible and persuasive | Social | High | No export of visuals, no shareable links with state, no embed mode |
+| 4 | **When** I'm presenting to a client, **I want to** show a visual representation of their site structure, **so I can** make my findings tangible and persuasive | Social | High | SVG/PNG export from graph, JSON export, shareable URLs with search state |
 
 ### Web Developer / QA
 
@@ -71,7 +71,7 @@
 
 | # | Job | User Type | Importance | Fulfillment | Opportunity |
 |---|-----|-----------|------------|-------------|-------------|
-| 4 | Present site structure to clients | SEO | 5 | 1 | **4** |
+| 4 | Present site structure to clients | SEO | 5 | 3 | **2** |
 | 3 | Find structural issues in architecture | SEO | 5 | 2 | **3** |
 | 10 | Show interactive visuals to non-tech stakeholders | Content/UX | 4 | 1 | **3** |
 | 9 | See page counts by section | Content/UX | 4 | 2 | **2** |

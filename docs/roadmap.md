@@ -4,16 +4,15 @@
 ## Shipped
 | Date | Job | Fulfillment Before → After |
 |------|-----|----------------------------|
+| 2026-02-28 | #4 Present site structure to clients | 1 → 3 |
 
 ## In Progress
 | Started | Job | Notes |
 |---------|-----|-------|
-| 2026-02-28 | #4 Present site structure to clients | Export-focused: SVG/PNG export, JSON export, enhanced shareable URLs |
 
 ## Up Next
 | # | Job | User Type | Opportunity |
 |---|-----|-----------|-------------|
-| 4 | Present site structure to clients | SEO | 4 |
 | 3 | Find structural issues in architecture | SEO | 3 |
 | 10 | Show interactive visuals to non-tech stakeholders | Content/UX | 3 |
 | 9 | See page counts by section | Content/UX | 2 |
