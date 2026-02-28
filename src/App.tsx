@@ -14,8 +14,9 @@ import { fetchSitemap, parseSitemapXML, SitemapEntry } from './utils/sitemapPars
 import { buildTreeFromUrls, TreeNode } from './utils/treeBuilder';
 import { exportTreeToCSV } from './utils/csvExporter';
 import ProgressiveCrawler, { CrawlState } from './utils/progressiveCrawler';
-import { Download, Play, Pause, Square, FileJson, Link, Check } from 'lucide-react';
+import { Download, Play, Pause, Square, FileJson, Link, Check, ShieldCheck } from 'lucide-react';
 import { exportJSON, copyShareLink } from './utils/exportUtils';
+import { verifySitemapUrls, VerificationReport } from './utils/sitemapVerifier';
 
 // URL parameter utilities for shareable links
 const updateUrlParams = (url: string, view: ViewType, search?: string) => {
@@ -54,6 +55,8 @@ function App() {
   const [isCrawling, setIsCrawling] = useState(false);
   const [crawlState, setCrawlState] = useState<CrawlState | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [verificationReport, setVerificationReport] = useState<VerificationReport | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
   const crawlerRef = useRef<ProgressiveCrawler | null>(null);
   const isCompleteRef = useRef(false);
 
@@ -595,7 +598,29 @@ function App() {
                       </div>
                     )}
                     
-                    {/* Export buttons */}
+                    {/* Export & verify buttons */}
+                    <button
+                      onClick={async () => {
+                        if (isVerifying || !urls.length) return;
+                        setIsVerifying(true);
+                        setVerificationReport(null);
+                        try {
+                          await verifySitemapUrls(urls, 20, (report) => {
+                            setVerificationReport({ ...report });
+                          });
+                        } finally {
+                          setIsVerifying(false);
+                        }
+                      }}
+                      className={`p-2 border border-gray-300 rounded-lg shadow-sm transition-colors ${
+                        isVerifying ? 'bg-amber-50 border-amber-300' : 'bg-white hover:bg-gray-50'
+                      }`}
+                      title={isVerifying ? 'Verifying...' : 'Verify URLs are accessible'}
+                      aria-label="Verify sitemap URLs"
+                      disabled={isVerifying}
+                    >
+                      <ShieldCheck className={`w-4 h-4 ${isVerifying ? 'text-amber-500 animate-pulse' : 'text-gray-600'}`} />
+                    </button>
                     <button
                       onClick={async () => {
                         const success = await copyShareLink();
@@ -740,6 +765,44 @@ function App() {
                   </div>
                   <SitemapStats treeData={treeData} urls={urls} />
                   <StructuralInsights treeData={treeData} urls={urls} />
+                  {verificationReport && (
+                    <div className="mt-8 bg-white rounded-lg border border-gray-200 p-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2.5 bg-primary-pink/10 rounded-lg">
+                          <ShieldCheck className="h-5 w-5 text-primary-pink" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900">URL Verification</h3>
+                          <p className="text-sm text-gray-500">
+                            Checked {verificationReport.checked} of {verificationReport.total} URLs
+                            {!verificationReport.isComplete && ' (in progress...)'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4 mb-4">
+                        <div className="text-center p-3 bg-green-50 rounded-lg">
+                          <p className="text-2xl font-bold text-green-700">{verificationReport.ok}</p>
+                          <p className="text-xs text-green-600">Accessible</p>
+                        </div>
+                        <div className="text-center p-3 bg-red-50 rounded-lg">
+                          <p className="text-2xl font-bold text-red-700">{verificationReport.errors}</p>
+                          <p className="text-xs text-red-600">Errors</p>
+                        </div>
+                        <div className="text-center p-3 bg-amber-50 rounded-lg">
+                          <p className="text-2xl font-bold text-amber-700">{verificationReport.redirects}</p>
+                          <p className="text-xs text-amber-600">Redirects</p>
+                        </div>
+                      </div>
+                      {verificationReport.results.filter(r => r.status === 'error').length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-red-700">Failed URLs:</p>
+                          {verificationReport.results.filter(r => r.status === 'error').map((r, i) => (
+                            <p key={i} className="text-xs font-mono text-red-600 truncate">{r.url}</p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
