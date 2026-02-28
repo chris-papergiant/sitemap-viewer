@@ -60,7 +60,6 @@ function App() {
   const [verificationReport, setVerificationReport] = useState<VerificationReport | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const crawlerRef = useRef<ProgressiveCrawler | null>(null);
-  const isCompleteRef = useRef(false);
 
   const getSiteName = () => {
     try {
@@ -86,7 +85,6 @@ function App() {
     setIsVisualisationMode(true);
     setCurrentUrl(url);
     setVerificationReport(null);
-    isCompleteRef.current = false;
 
     // Track sitemap search event
     track('sitemap_search', {
@@ -156,8 +154,7 @@ function App() {
           setProgress(100);
           setProgressMessage('Complete!');
           setProgressSubMessage(`Successfully visualised ${allUrls.length} URLs`);
-          isCompleteRef.current = true;
-          
+
           // Track successful sitemap fetch
           track('sitemap_success', {
             domain: new URL(url.startsWith('http') ? url : `https://${url}`).hostname,
@@ -187,8 +184,7 @@ function App() {
         setProgress(100);
         setProgressMessage('Complete!');
         setProgressSubMessage(`Successfully visualised ${parsed.urls.length} URLs`);
-        isCompleteRef.current = true;
-        
+
         // Track successful sitemap fetch
         track('sitemap_success', {
           domain: new URL(url.startsWith('http') ? url : `https://${url}`).hostname,
