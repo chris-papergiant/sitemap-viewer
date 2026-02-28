@@ -233,6 +233,11 @@ const GraphView: React.FC<GraphViewProps> = ({ data, searchQuery, siteName = 'si
 
   return (
     <div className="bg-white relative">
+      <div className="px-6 py-4 border-b border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-900">Network Graph</h3>
+        <p className="text-sm text-gray-500">Interactive map of your site structure. Drag to pan, scroll to zoom, click a node to open the page.</p>
+      </div>
+      <div className="relative">
       <div className="absolute top-4 right-4 z-10 flex flex-col space-y-2">
         <button
           onClick={() => handleZoom('in')}
@@ -302,6 +307,7 @@ const GraphView: React.FC<GraphViewProps> = ({ data, searchQuery, siteName = 'si
           height={dimensions.height}
           className="border border-gray-200 rounded"
         />
+      </div>
       </div>
     </div>
   );

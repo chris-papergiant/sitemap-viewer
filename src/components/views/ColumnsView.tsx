@@ -77,8 +77,14 @@ const ColumnsView: React.FC<ColumnsViewProps> = ({ data, searchQuery }) => {
 
   return (
     <div className="bg-white flex flex-col h-full min-h-[500px]">
-      {/* Breadcrumb */}
+      {/* Header with description and breadcrumb */}
       <div className="border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Column Browser</h3>
+            <p className="text-sm text-gray-500">Click a folder to drill into its contents. Each column shows one level of the site hierarchy.</p>
+          </div>
+        </div>
         <div className="flex items-center space-x-1 text-sm">
           {columns.map((col, idx) => (
             <React.Fragment key={idx}>
