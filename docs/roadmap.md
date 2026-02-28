@@ -5,6 +5,7 @@
 | Date | Job | Fulfillment Before → After |
 |------|-----|----------------------------|
 | 2026-02-28 | #4 Present site structure to clients | 1 → 3 |
+| 2026-02-28 | #3 Find structural issues in architecture | 2 → 4 |
 
 ## In Progress
 | Started | Job | Notes |
@@ -13,7 +14,6 @@
 ## Up Next
 | # | Job | User Type | Opportunity |
 |---|-----|-----------|-------------|
-| 3 | Find structural issues in architecture | SEO | 3 |
 | 10 | Show interactive visuals to non-tech stakeholders | Content/UX | 3 |
 | 9 | See page counts by section | Content/UX | 2 |
 | 1 | Map unfamiliar competitor site structure | SEO | 2 |

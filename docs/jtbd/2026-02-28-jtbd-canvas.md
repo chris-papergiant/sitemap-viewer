@@ -20,7 +20,7 @@
 |---|---------------|------|-------------|-----------------|
 | 1 | **When** I come across an unfamiliar competitor site, **I want to** quickly map its structure and content areas, **so I can** spot opportunities and plan my content strategy against it | Functional | Partially served | Sitemap fetch + crawler + 3 views; limited to 500 pages / 3 depth |
 | 2 | **When** I'm exploring a new site, **I want to** get a structural overview without installing tools or running a full crawl, **so I can** move fast and stay in flow | Functional | Fully served | Browser-based SPA, no install, URL input and go |
-| 3 | **When** I'm reviewing a site's architecture, **I want to** find structural issues like deep nesting or orphaned sections, **so I can** surface actionable recommendations | Functional | Partially served | Stats show depth/page count, but no explicit issue flagging |
+| 3 | **When** I'm reviewing a site's architecture, **I want to** find structural issues like deep nesting or orphaned sections, **so I can** surface actionable recommendations | Functional | Well served | Health score, issue detection (deep nesting, thin sections, imbalance, stale content, missing metadata), content distribution chart |
 
 #### Jobs to Serve
 
@@ -72,7 +72,7 @@
 | # | Job | User Type | Importance | Fulfillment | Opportunity |
 |---|-----|-----------|------------|-------------|-------------|
 | 4 | Present site structure to clients | SEO | 5 | 3 | **2** |
-| 3 | Find structural issues in architecture | SEO | 5 | 2 | **3** |
+| 3 | Find structural issues in architecture | SEO | 5 | 4 | **1** |
 | 10 | Show interactive visuals to non-tech stakeholders | Content/UX | 4 | 1 | **3** |
 | 9 | See page counts by section | Content/UX | 4 | 2 | **2** |
 | 1 | Map unfamiliar competitor site structure | SEO | 5 | 3 | **2** |
