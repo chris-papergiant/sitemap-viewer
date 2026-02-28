@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import { track } from '@vercel/analytics';
 import SitemapFetcher from './components/SitemapFetcher';
 import SitemapStats from './components/SitemapStats';
-import ProgressBar from './components/ProgressBar';
 import ViewSwitcher, { ViewType } from './components/ViewSwitcher';
 import ExplorerView from './components/views/ExplorerView';
 import ColumnsView from './components/views/ColumnsView';
@@ -10,6 +9,9 @@ import GraphView from './components/views/GraphView';
 import { Button } from './components/ui/Button';
 import Logo from './components/Logo';
 import StructuralInsights from './components/StructuralInsights';
+import StatsSkeleton from './components/skeletons/StatsSkeleton';
+import TreeSkeleton from './components/skeletons/TreeSkeleton';
+import InsightsSkeleton from './components/skeletons/InsightsSkeleton';
 import { fetchSitemap, parseSitemapXML, SitemapEntry } from './utils/sitemapParser';
 import { buildTreeFromUrls, TreeNode } from './utils/treeBuilder';
 import { exportTreeToCSV } from './utils/csvExporter';
@@ -216,17 +218,8 @@ function App() {
       handleStartCrawl(url); // Automatically start crawling
       return; // Exit early since we're starting the crawler
     } finally {
-      // Keep the progress bar visible for a moment at 100%
-      if (isCompleteRef.current) {
-        setTimeout(() => {
-          setIsLoading(false);
-          setProgress(0);
-          isCompleteRef.current = false;
-        }, 1500);
-      } else {
-        setIsLoading(false);
-        setProgress(0);
-      }
+      setIsLoading(false);
+      setProgress(0);
     }
   };
 
@@ -529,7 +522,7 @@ function App() {
           </section>
         )}
 
-        {treeData && urls.length > 0 && (
+        {(isLoading && isVisualisationMode || treeData && urls.length > 0) && (
           <>
             {/* Visualization Section */}
             <section 
@@ -679,7 +672,32 @@ function App() {
                     </button>
                   </div>
                 </div>
-                
+
+                {/* Fetch progress bar - shown during sitemap loading */}
+                {isLoading && (
+                  <div className="bg-gray-50 border-b border-gray-200 px-6 py-2">
+                    <div className="max-w-7xl mx-auto">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-xs font-medium text-gray-600">
+                          {progressMessage}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {Math.round(progress)}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-1">
+                        <div
+                          className="bg-primary-pink h-1 rounded-full transition-all duration-500 ease-out"
+                          style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+                        />
+                      </div>
+                      {progressSubMessage && (
+                        <p className="text-xs text-gray-400 mt-1">{progressSubMessage}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Crawling progress bar */}
                 {isCrawling && crawlState && (
                   <div className="bg-primary-pink/5 border-b border-primary-pink/20 px-6 py-3">
@@ -746,48 +764,57 @@ function App() {
                       })() : 'your website\'s structure'}
                     </p>
                   </div>
-                  <SitemapStats treeData={treeData} urls={urls} />
-                  <StructuralInsights treeData={treeData} urls={urls} />
-                  {verificationReport && (
-                    <div className="mt-8 bg-white rounded-lg border border-gray-200 p-6">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2.5 bg-primary-pink/10 rounded-lg">
-                          <ShieldCheck className="h-5 w-5 text-primary-pink" />
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900">URL Verification</h3>
-                          <p className="text-sm text-gray-500">
-                            Checked {verificationReport.checked} of {verificationReport.total} URLs
-                            {!verificationReport.isComplete && ' (in progress...)'}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-3 gap-4 mb-4">
-                        <div className="text-center p-3 bg-green-50 rounded-lg">
-                          <p className="text-2xl font-bold text-green-700">{verificationReport.ok}</p>
-                          <p className="text-xs text-green-600">Accessible</p>
-                        </div>
-                        <div className="text-center p-3 bg-red-50 rounded-lg">
-                          <p className="text-2xl font-bold text-red-700">{verificationReport.errors}</p>
-                          <p className="text-xs text-red-600">Errors</p>
-                        </div>
-                        <div className="text-center p-3 bg-amber-50 rounded-lg">
-                          <p className="text-2xl font-bold text-amber-700">{verificationReport.redirects}</p>
-                          <p className="text-xs text-amber-600">Redirects</p>
-                        </div>
-                      </div>
-                      {(() => {
-                        const errorResults = verificationReport.results.filter(r => r.status === 'error');
-                        return errorResults.length > 0 && (
-                          <div className="space-y-2">
-                            <p className="text-sm font-medium text-red-700">Failed URLs:</p>
-                            {errorResults.map((r, i) => (
-                              <p key={i} className="text-xs font-mono text-red-600 truncate">{r.url}</p>
-                            ))}
+                  {treeData && urls.length > 0 ? (
+                    <>
+                      <SitemapStats treeData={treeData} urls={urls} />
+                      <StructuralInsights treeData={treeData} urls={urls} />
+                      {verificationReport && (
+                        <div className="mt-8 bg-white rounded-lg border border-gray-200 p-6">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2.5 bg-primary-pink/10 rounded-lg">
+                              <ShieldCheck className="h-5 w-5 text-primary-pink" />
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-semibold text-gray-900">URL Verification</h3>
+                              <p className="text-sm text-gray-500">
+                                Checked {verificationReport.checked} of {verificationReport.total} URLs
+                                {!verificationReport.isComplete && ' (in progress...)'}
+                              </p>
+                            </div>
                           </div>
-                        );
-                      })()}
-                    </div>
+                          <div className="grid grid-cols-3 gap-4 mb-4">
+                            <div className="text-center p-3 bg-green-50 rounded-lg">
+                              <p className="text-2xl font-bold text-green-700">{verificationReport.ok}</p>
+                              <p className="text-xs text-green-600">Accessible</p>
+                            </div>
+                            <div className="text-center p-3 bg-red-50 rounded-lg">
+                              <p className="text-2xl font-bold text-red-700">{verificationReport.errors}</p>
+                              <p className="text-xs text-red-600">Errors</p>
+                            </div>
+                            <div className="text-center p-3 bg-amber-50 rounded-lg">
+                              <p className="text-2xl font-bold text-amber-700">{verificationReport.redirects}</p>
+                              <p className="text-xs text-amber-600">Redirects</p>
+                            </div>
+                          </div>
+                          {(() => {
+                            const errorResults = verificationReport.results.filter(r => r.status === 'error');
+                            return errorResults.length > 0 && (
+                              <div className="space-y-2">
+                                <p className="text-sm font-medium text-red-700">Failed URLs:</p>
+                                {errorResults.map((r, i) => (
+                                  <p key={i} className="text-xs font-mono text-red-600 truncate">{r.url}</p>
+                                ))}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <StatsSkeleton />
+                      <InsightsSkeleton />
+                    </>
                   )}
                 </div>
               </div>
@@ -808,34 +835,38 @@ function App() {
                   onSearch={setSearchQuery}
                 />
                 
-                <div 
-                  className="transition-all duration-300 ease-in-out" 
-                  role="region" 
-                  aria-label={`Sitemap ${currentView} view`}
-                  aria-live="polite"
-                >
-                {currentView === 'explorer' && (
-                  <div className="animate-fade-in">
-                    <ExplorerView data={treeData} searchQuery={searchQuery} />
+                {!treeData ? (
+                  <TreeSkeleton />
+                ) : (
+                  <div
+                    className="transition-all duration-300 ease-in-out"
+                    role="region"
+                    aria-label={`Sitemap ${currentView} view`}
+                    aria-live="polite"
+                  >
+                  {currentView === 'explorer' && (
+                    <div className="animate-fade-in">
+                      <ExplorerView data={treeData} searchQuery={searchQuery} />
+                    </div>
+                  )}
+                  {currentView === 'columns' && (
+                    <div className="animate-fade-in">
+                      <ColumnsView data={treeData} searchQuery={searchQuery} />
+                    </div>
+                  )}
+                  {currentView === 'graph' && (
+                    <div className="animate-fade-in">
+                      <GraphView data={treeData} searchQuery={searchQuery} siteName={getSiteName()} />
+                    </div>
+                  )}
                   </div>
                 )}
-                {currentView === 'columns' && (
-                  <div className="animate-fade-in">
-                    <ColumnsView data={treeData} searchQuery={searchQuery} />
-                  </div>
-                )}
-                {currentView === 'graph' && (
-                  <div className="animate-fade-in">
-                    <GraphView data={treeData} searchQuery={searchQuery} siteName={getSiteName()} />
-                  </div>
-                )}
-                </div>
               </div>
             </div>
             </section>
             
             {/* Stats Section - Only show in non-visualization mode */}
-            {!isVisualisationMode && (
+            {!isVisualisationMode && treeData && (
               <section className="bg-gray-50 py-12">
                 <div className="max-w-7xl mx-auto px-6">
                   <div className="text-center mb-10">
@@ -864,26 +895,6 @@ function App() {
           </>
         )}
 
-        {isLoading && (
-          <section 
-            className={`transition-all duration-700 ease-in-out ${
-              isVisualisationMode 
-                ? 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50'
-                : 'section section-quaternary'
-            }`} 
-            role="status" 
-            aria-live="polite"
-          >
-            <div className={isVisualisationMode ? 'max-w-2xl mx-auto px-4' : 'max-w-4xl mx-auto'}>
-              <ProgressBar 
-                progress={progress} 
-                message={progressMessage} 
-                subMessage={progressSubMessage} 
-              />
-            </div>
-          </section>
-        )}
-        
       </main>
 
       {/* Footer - Show in both modes but different styling */}
