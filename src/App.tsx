@@ -9,6 +9,7 @@ import ColumnsView from './components/views/ColumnsView';
 import GraphView from './components/views/GraphView';
 import { Button } from './components/ui/Button';
 import Logo from './components/Logo';
+import StructuralInsights from './components/StructuralInsights';
 import { fetchSitemap, parseSitemapXML, SitemapEntry } from './utils/sitemapParser';
 import { buildTreeFromUrls, TreeNode } from './utils/treeBuilder';
 import { exportTreeToCSV } from './utils/csvExporter';
@@ -738,10 +739,11 @@ function App() {
                     </p>
                   </div>
                   <SitemapStats treeData={treeData} urls={urls} />
+                  <StructuralInsights treeData={treeData} urls={urls} />
                 </div>
               </div>
             )}
-            
+
             {/* Connected view switcher and visualisation container */}
             <div className={`${
               isVisualisationMode 
@@ -796,7 +798,7 @@ function App() {
                         try {
                           const url = currentUrl.startsWith('http') ? currentUrl : `https://${currentUrl}`;
                           const domain = new URL(url).hostname;
-                          return domain.endsWith('.com') || domain.endsWith('.org') || domain.endsWith('.net') || domain.endsWith('.io') || domain.endsWith('.au') || domain.endsWith('.gov') || domain.endsWith('.edu') 
+                          return domain.endsWith('.com') || domain.endsWith('.org') || domain.endsWith('.net') || domain.endsWith('.io') || domain.endsWith('.au') || domain.endsWith('.gov') || domain.endsWith('.edu')
                             ? `${domain}'s structure`
                             : `the structure of ${domain}`;
                         } catch {
@@ -806,6 +808,7 @@ function App() {
                     </p>
                   </div>
                   <SitemapStats treeData={treeData} urls={urls} />
+                  <StructuralInsights treeData={treeData} urls={urls} />
                 </div>
               </section>
             )}
