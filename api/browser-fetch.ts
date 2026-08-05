@@ -1,9 +1,19 @@
 import { chromium } from 'playwright-core';
+// Version pairing note: playwright-core 1.54 bundles Chromium 139, while
+// @sparticuz/chromium ships 138 (no 139 build exists — sparticuz skips
+// versions). One minor version behind is generally fine for Playwright's
+// protocol, but when bumping either dependency, keep them as close as the
+// published versions allow and verify a launch in the Vercel logs.
 import chromiumPack from '@sparticuz/chromium';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { guardRequest } from './_security';
 
 // Cache browser executable path
 let executablePath: string | null = null;
+
+// Launching Chromium is the most expensive thing this app does — keep the
+// per-IP budget low.
+const RATE_LIMIT_PER_MINUTE = 10;
 
 export default async function handler(
   req: VercelRequest,
@@ -12,6 +22,10 @@ export default async function handler(
   // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  if (!guardRequest(req, res, RATE_LIMIT_PER_MINUTE)) {
+    return;
   }
 
   const { url, type = 'sitemap' } = req.body;

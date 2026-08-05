@@ -108,6 +108,23 @@ const getSitemapAlternatives = (baseUrl: string): string[] => {
   ];
 };
 
+// Proxy functions shared by fetchSitemap and fetchSitemapDirect
+const buildCorsProxies = (): ((url: string) => string)[] => [
+  (url: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+  (url: string) => `https://proxy.cors.sh/${url}`,
+  (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  (url: string) => `https://cors-anywhere.herokuapp.com/${url}`,
+];
+
+/**
+ * Fetch a sitemap from an exact, known URL (e.g. a child of a sitemap
+ * index). Unlike fetchSitemap, this does not probe robots.txt or the common
+ * sitemap locations when the URL fails — a missing child is just missing.
+ */
+export const fetchSitemapDirect = async (url: string, onProgress?: (message: string) => void): Promise<string> => {
+  return fetchWithProxies(url, buildCorsProxies(), onProgress);
+};
+
 export const fetchSitemap = async (url: string, onProgress?: (message: string) => void): Promise<string> => {
   // Clean up the URL
   let baseUrl = url.trim();
@@ -125,13 +142,8 @@ export const fetchSitemap = async (url: string, onProgress?: (message: string) =
   
   // Try multiple CORS proxies in order of reliability
   // Note: api.codetabs.com tends to work better than proxy.cors.sh for some sites
-  const corsProxies = [
-    (url: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-    (url: string) => `https://proxy.cors.sh/${url}`,
-    (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    (url: string) => `https://cors-anywhere.herokuapp.com/${url}`,
-  ];
-  
+  const corsProxies = buildCorsProxies();
+
   let lastError: Error | null = null;
   
   // Try each sitemap location
@@ -171,8 +183,7 @@ export const fetchSitemap = async (url: string, onProgress?: (message: string) =
     }
     
     const locationName = new URL(sitemapUrl).pathname;
-    const locationIndex = i; // robots.txt was first, so this is the actual location attempt
-    onProgress?.(`Trying ${locationName}... (${locationIndex}/${sitemapCandidates.length - 1})`);
+    onProgress?.(`Trying ${locationName}... (${i}/${sitemapCandidates.length - 1})`);
     
     try {
       const result = await fetchWithProxies(sitemapUrl, corsProxies, onProgress);

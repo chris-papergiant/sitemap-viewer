@@ -46,12 +46,27 @@ class ProgressiveCrawler {
   private crawlDelay = 1000; // Increased delay for government sites (1s between batches)
   private baseUrl: string = '';
   private baseDomain: string = '';
-  private debugMode = true; // Enable detailed logging
+  private debugMode = import.meta.env.DEV; // Detailed logging in dev builds only
   private requestCount = 0;
+  private queuedUrls = new Set<string>();
 
   constructor(onProgress: CrawlProgressCallback) {
     this.onProgress = onProgress;
     this.state = this.createInitialState();
+  }
+
+  private group(label: string, style?: string) {
+    if (!this.debugMode) return;
+    if (style) {
+      console.group(`%c${label}`, style);
+    } else {
+      console.group(label);
+    }
+  }
+
+  private groupEnd() {
+    if (!this.debugMode) return;
+    console.groupEnd();
   }
 
   private log(level: 'info' | 'warn' | 'error' | 'debug', message: string, data?: any) {
@@ -94,11 +109,12 @@ class ProgressiveCrawler {
   }
 
   async startCrawl(url: string, maxDepth = 3, maxPages = 500): Promise<void> {
-    console.group('%c🚀 CRAWLER START', 'color: #ff1493; font-weight: bold');
+    this.group('🚀 CRAWLER START', 'color: #ff1493; font-weight: bold');
     
     this.maxDepth = maxDepth;
     this.maxPages = maxPages;
     this.state = this.createInitialState();
+    this.queuedUrls = new Set<string>();
     this.abortController = new AbortController();
 
     this.log('info', `Configuration:`, {
@@ -145,12 +161,12 @@ class ProgressiveCrawler {
       // Start the crawl loop
       await this.crawlLoop();
       
-      console.groupEnd();
+      this.groupEnd();
     } catch (error) {
       this.log('error', 'Crawl start failed:', error);
       this.state.status = 'error';
       this.onProgress(this.state);
-      console.groupEnd();
+      this.groupEnd();
       throw error;
     }
   }
@@ -164,7 +180,7 @@ class ProgressiveCrawler {
       this.state.stats.pagesProcessed < this.maxPages
     ) {
       batchCount++;
-      console.group(`%c📦 Batch #${batchCount}`, 'color: #0099cc');
+      this.group(`📦 Batch #${batchCount}`, 'color: #0099cc');
       
       // Get next batch
       const batch = this.state.queue
@@ -193,7 +209,7 @@ class ProgressiveCrawler {
         totalFound: this.state.stats.pagesFound
       });
       
-      console.groupEnd();
+      this.groupEnd();
       
       // Update progress
       this.onProgress(this.state);
@@ -205,10 +221,14 @@ class ProgressiveCrawler {
       }
     }
     
-    // Mark as complete
+    // Mark as complete — but if every processed page failed, the site is
+    // blocking us and the user should see an error, not an empty tree
     if (this.state.status === 'crawling') {
-      this.state.status = 'complete';
-      this.log('info', '✅ Crawl complete!', {
+      const allFailed =
+        this.state.stats.pagesProcessed > 0 &&
+        this.state.stats.failedPages.length >= this.state.stats.pagesProcessed;
+      this.state.status = allFailed ? 'error' : 'complete';
+      this.log('info', allFailed ? '❌ Crawl failed — no pages accessible' : '✅ Crawl complete!', {
         totalPages: this.state.stats.pagesFound,
         processed: this.state.stats.pagesProcessed,
         failed: this.state.stats.failedPages.length,
@@ -220,7 +240,7 @@ class ProgressiveCrawler {
 
   private async fetchWithProxy(url: string): Promise<string> {
     this.requestCount++;
-    console.group(`%c🌐 Request #${this.requestCount}: Fetching ${url}`, 'color: #4CAF50');
+    this.group(`🌐 Request #${this.requestCount}: Fetching ${url}`, 'color: #4CAF50');
 
     let lastError: Error | null = null;
     let proxyAttempt = 0;
@@ -233,12 +253,12 @@ class ProgressiveCrawler {
       try {
         this.log('info', '🏛️ Protected site detected — using server-side proxy first');
         const html = await this.fetchViaServerProxy(url);
-        console.groupEnd(); // End request
+        this.groupEnd(); // End request
         return html;
       } catch (error) {
         this.log('warn', 'Server-side proxy failed, falling back to CORS proxies:', error);
         if (error instanceof Error && error.message.includes('aborted')) {
-          console.groupEnd(); // End request
+          this.groupEnd(); // End request
           throw error;
         }
         lastError = error instanceof Error ? error : new Error(String(error));
@@ -252,7 +272,7 @@ class ProgressiveCrawler {
                        proxy.includes('codetabs') ? 'codetabs' :
                        proxy.includes('herokuapp') ? 'cors-anywhere' : 'unknown';
       
-      console.group(`%c🔄 Proxy Attempt ${proxyAttempt}/${CORS_PROXIES.length}: ${proxyName}`, 'color: #2196F3');
+      this.group(`🔄 Proxy Attempt ${proxyAttempt}/${CORS_PROXIES.length}: ${proxyName}`, 'color: #2196F3');
       
       try {
         const proxyUrl = (proxy.includes('quest=') || 
@@ -341,8 +361,8 @@ class ProgressiveCrawler {
           firstChars: html.substring(0, 100)
         });
         
-        console.groupEnd(); // End proxy attempt
-        console.groupEnd(); // End request
+        this.groupEnd(); // End proxy attempt
+        this.groupEnd(); // End request
         return html;
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -356,13 +376,13 @@ class ProgressiveCrawler {
         
         if (error instanceof Error && error.message.includes('aborted')) {
           this.log('warn', 'Request was aborted by user');
-          console.groupEnd(); // End proxy attempt
-          console.groupEnd(); // End request
+          this.groupEnd(); // End proxy attempt
+          this.groupEnd(); // End request
           throw error;
         }
         
         lastError = error as Error;
-        console.groupEnd(); // End proxy attempt
+        this.groupEnd(); // End proxy attempt
         continue; // Try next proxy
       }
     }
@@ -373,7 +393,7 @@ class ProgressiveCrawler {
       lastError: lastError?.message
     });
 
-    console.groupEnd(); // End request
+    this.groupEnd(); // End request
 
     // Try our lightweight server proxy before the heavy browser-engine fallback
     if (!triedServerProxy) {
@@ -390,7 +410,7 @@ class ProgressiveCrawler {
     }
 
     // NEW: Try server-side browser fetch as fallback
-    console.group(`%c🌐 Attempting server-side browser fetch`, 'color: #9C27B0');
+    this.group(`🌐 Attempting server-side browser fetch`, 'color: #9C27B0');
     this.log('info', '🔄 All CORS proxies failed, trying server-side browser fetch...');
     
     try {
@@ -417,14 +437,14 @@ class ProgressiveCrawler {
           htmlLength: data.html.length,
           status: data.status
         });
-        console.groupEnd();
+        this.groupEnd();
         return data.html;
       } else {
         throw new Error(data.error || 'Server-side fetch failed');
       }
     } catch (apiError) {
       this.log('error', '❌ Server-side fetch also failed:', apiError);
-      console.groupEnd();
+      this.groupEnd();
       
       // Provide a more descriptive error based on the failure type
       if (lastError?.message.includes('403') || lastError?.message.includes('Forbidden')) {
@@ -470,7 +490,7 @@ class ProgressiveCrawler {
       return;
     }
     
-    console.group(`%c📄 Processing Page: ${task.url}`, 'color: #9C27B0');
+    this.group(`📄 Processing Page: ${task.url}`, 'color: #9C27B0');
     this.log('info', 'Task details:', {
       depth: task.depth,
       priority: task.priority,
@@ -564,7 +584,7 @@ class ProgressiveCrawler {
         totalProcessed: this.state.stats.pagesProcessed
       });
       
-      console.groupEnd();
+      this.groupEnd();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.log('error', `❌ Failed to process page`, {
@@ -574,7 +594,7 @@ class ProgressiveCrawler {
       });
       
       this.state.stats.failedPages.push(task.url);
-      console.groupEnd();
+      this.groupEnd();
     }
   }
 
@@ -662,6 +682,13 @@ class ProgressiveCrawler {
   }
 
   private addToQueue(url: string, depth: number, parentPath: string[]): void {
+    // Skip URLs already processed or already waiting in the queue, so
+    // pagesFound reflects unique pages rather than every re-discovery
+    if (this.state.discovered.has(url) || this.queuedUrls.has(url)) {
+      return;
+    }
+    this.queuedUrls.add(url);
+
     // Calculate priority (lower is higher priority)
     // Prioritize: homepage (0), shallow pages (depth), then alphabetical
     let priority = depth * 1000;
@@ -806,8 +833,8 @@ class ProgressiveCrawler {
   }
 }
 
-// Debug helpers - expose to window for runtime debugging
-if (typeof window !== 'undefined') {
+// Debug helpers - expose to window for runtime debugging (dev builds only)
+if (typeof window !== 'undefined' && import.meta.env.DEV) {
   (window as any).CrawlerDebug = {
     lastCrawler: null as ProgressiveCrawler | null,
     proxies: CORS_PROXIES,

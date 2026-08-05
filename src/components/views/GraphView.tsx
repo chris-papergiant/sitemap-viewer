@@ -20,8 +20,10 @@ const GraphView: React.FC<GraphViewProps> = ({ data, searchQuery, siteName = 'si
     const handleResize = () => {
       const container = svgRef.current?.parentElement;
       if (container) {
+        const style = window.getComputedStyle(container);
+        const paddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
         setDimensions({
-          width: container.clientWidth - 32, // Account for padding
+          width: container.clientWidth - paddingX,
           // Keep a usable minimum height on small screens
           height: Math.max(380, Math.min(600, window.innerHeight - 260))
         });

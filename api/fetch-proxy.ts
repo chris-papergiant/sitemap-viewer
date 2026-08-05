@@ -1,4 +1,6 @@
+import { lookup } from 'node:dns/promises';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { guardRequest } from './_security';
 
 // Lightweight server-side fetch proxy.
 //
@@ -18,20 +20,27 @@ const BROWSER_HEADERS: Record<string, string> = {
 };
 
 const FETCH_TIMEOUT_MS = 20000;
-const MAX_CONTENT_LENGTH = 10 * 1024 * 1024; // 10MB
+// Vercel serverless functions cap response bodies at ~4.5MB on every plan,
+// so anything larger would download fully and then fail at the platform
+// layer. Cap below that so we fail fast with a clear error instead.
+const MAX_CONTENT_LENGTH = 4 * 1024 * 1024; // 4MB
+const MAX_REDIRECTS = 5;
+const RATE_LIMIT_PER_MINUTE = 60;
 
-// Reject requests targeting internal/private hosts (SSRF protection)
-const isPrivateHost = (hostname: string): boolean => {
-  const host = hostname.toLowerCase().replace(/^\[|\]$/g, '');
+// Reject hostnames/addresses in private or special-use ranges (SSRF protection)
+const isPrivateAddress = (addr: string): boolean => {
+  const host = addr.toLowerCase().replace(/^\[|\]$/g, '');
   if (host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local') || host.endsWith('.internal')) {
     return true;
   }
-  // IPv6 loopback / link-local / unique-local
-  if (host === '::1' || host.startsWith('fe80:') || host.startsWith('fc') || host.startsWith('fd')) {
+  // IPv6 loopback / link-local / unique-local / unspecified
+  if (host === '::' || host === '::1' || host.startsWith('fe80:') || host.startsWith('fc') || host.startsWith('fd')) {
     return true;
   }
-  // IPv4 private and special-use ranges
-  const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  // IPv4-mapped IPv6 (::ffff:10.0.0.1)
+  const mapped = host.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
+  const ipv4Host = mapped ? mapped[1] : host;
+  const ipv4 = ipv4Host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
   if (ipv4) {
     const [a, b] = [parseInt(ipv4[1], 10), parseInt(ipv4[2], 10)];
     return (
@@ -47,7 +56,31 @@ const isPrivateHost = (hostname: string): boolean => {
   return false;
 };
 
+// Validate a target URL: scheme, literal hostname, and resolved DNS addresses.
+// Returns an error string, or null when the URL is safe to fetch.
+const validateTarget = async (target: URL): Promise<string | null> => {
+  if (target.protocol !== 'http:' && target.protocol !== 'https:') {
+    return 'Only http/https URLs are allowed';
+  }
+  if (isPrivateAddress(target.hostname)) {
+    return 'Requests to private hosts are not allowed';
+  }
+  try {
+    const addresses = await lookup(target.hostname, { all: true });
+    if (addresses.some(a => isPrivateAddress(a.address))) {
+      return 'Requests to private hosts are not allowed';
+    }
+  } catch {
+    return `Could not resolve host: ${target.hostname}`;
+  }
+  return null;
+};
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (!guardRequest(req, res, RATE_LIMIT_PER_MINUTE)) {
+    return;
+  }
+
   const url = req.method === 'POST' ? req.body?.url : req.query.url;
   const headOnly =
     req.method === 'POST' ? req.body?.head === true : req.query.head === '1';
@@ -56,19 +89,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ success: false, error: 'URL is required' });
   }
 
-  let parsed: URL;
+  let target: URL;
   try {
-    parsed = new URL(url);
+    target = new URL(url);
   } catch {
     return res.status(400).json({ success: false, error: 'Invalid URL format' });
-  }
-
-  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-    return res.status(400).json({ success: false, error: 'Only http/https URLs are allowed' });
-  }
-
-  if (isPrivateHost(parsed.hostname)) {
-    return res.status(400).json({ success: false, error: 'Requests to private hosts are not allowed' });
   }
 
   console.log(`[Fetch Proxy] ${headOnly ? 'HEAD' : 'GET'} ${url}`);
@@ -77,20 +102,58 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
   try {
-    let response = await fetch(url, {
-      method: headOnly ? 'HEAD' : 'GET',
-      headers: BROWSER_HEADERS,
-      redirect: 'follow',
-      signal: controller.signal,
-    });
+    // Follow redirects manually so every hop gets SSRF validation, and so we
+    // can report the original status (the verifier distinguishes redirects).
+    let response: Response | null = null;
+    let initialStatus: number | null = null;
+    let currentUrl = target;
 
-    // Some servers reject HEAD — retry as GET and discard the body
-    if (headOnly && (response.status === 405 || response.status === 501)) {
-      response = await fetch(url, {
-        method: 'GET',
+    for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+      const targetError = await validateTarget(currentUrl);
+      if (targetError) {
+        return res.status(400).json({ success: false, error: targetError });
+      }
+
+      response = await fetch(currentUrl.href, {
+        method: headOnly ? 'HEAD' : 'GET',
         headers: BROWSER_HEADERS,
-        redirect: 'follow',
+        redirect: 'manual',
         signal: controller.signal,
+      });
+
+      // Some servers reject HEAD — retry this hop as GET and discard the body
+      if (headOnly && (response.status === 405 || response.status === 501)) {
+        response = await fetch(currentUrl.href, {
+          method: 'GET',
+          headers: BROWSER_HEADERS,
+          redirect: 'manual',
+          signal: controller.signal,
+        });
+      }
+
+      if (initialStatus === null) {
+        initialStatus = response.status;
+      }
+
+      const location = response.headers.get('location');
+      if (response.status >= 300 && response.status < 400 && location) {
+        await response.body?.cancel();
+        currentUrl = new URL(location, currentUrl);
+        continue;
+      }
+      break;
+    }
+
+    if (!response) {
+      throw new Error('No response received');
+    }
+    if (response.status >= 300 && response.status < 400) {
+      return res.status(200).json({
+        success: false,
+        status: response.status,
+        initialStatus,
+        error: `Too many redirects (more than ${MAX_REDIRECTS})`,
+        url: currentUrl.href,
       });
     }
 
@@ -103,8 +166,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({
           success: false,
           status: response.status,
-          error: `Content too large (${declaredLength} bytes)`,
-          url: response.url,
+          initialStatus,
+          error: `Content too large (${declaredLength} bytes, limit ${MAX_CONTENT_LENGTH})`,
+          url: currentUrl.href,
         });
       }
       content = await response.text();
@@ -112,21 +176,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({
           success: false,
           status: response.status,
+          initialStatus,
           error: 'Content too large',
-          url: response.url,
+          url: currentUrl.href,
         });
       }
+    } else {
+      await response.body?.cancel();
     }
 
-    console.log(`[Fetch Proxy] ${response.status} from ${response.url} (${content.length} bytes)`);
+    console.log(`[Fetch Proxy] ${response.status} from ${currentUrl.href} (${content.length} bytes)`);
 
-    // success means the request completed; callers inspect `status` for HTTP errors
+    // success means the request completed; callers inspect `status` for HTTP
+    // errors and `initialStatus` to detect redirects.
     return res.status(200).json({
       success: true,
       status: response.status,
+      initialStatus,
+      redirected: currentUrl.href !== target.href,
       content,
       contentType,
-      url: response.url,
+      url: currentUrl.href,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
@@ -147,7 +217,7 @@ export const config = {
     bodyParser: {
       sizeLimit: '100kb',
     },
-    responseLimit: '12mb',
+    responseLimit: '4mb',
   },
   maxDuration: 30,
 };

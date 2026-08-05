@@ -7,9 +7,9 @@
 @tailwind utilities;
 
 @layer base {
-  /* Paper Giant Typography - Load fonts */
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-  
+  /* Fonts are loaded via <link> in index.html — an @import here (inside a
+     layer, after other rules) is invalid CSS and silently ignored */
+
   body {
     margin: 0;
     font-family: 'America', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
@@ -25,7 +25,7 @@
     accent-color: #DB1B5C;
   }
   
-  * {
+  html {
     scroll-behavior: smooth;
   }
 
@@ -381,19 +381,6 @@
   }
 }
 
-/* EMERGENCY FIX - Force white text on dark sections */
-.section-tertiary,
-.section-tertiary *,
-.section-tertiary h1,
-.section-tertiary h2,
-.section-tertiary h3,
-.section-tertiary p,
-.section-tertiary div,
-.section-tertiary span {
-  color: white !important;
-  opacity: 1 !important;
-}
-
 /* D3/Graph specific styles - Vibrant Paper Giant colors */
 .node circle {
   cursor: pointer;
@@ -486,19 +473,6 @@
 ::-moz-selection {
   background: rgba(219, 27, 92, 0.2);
   color: #BE185D;
-}
-
-/* NUCLEAR OPTION - Last resort to force white text */
-.section.section-tertiary h2 {
-  color: #ffffff !important;
-  opacity: 1 !important;
-  -webkit-text-fill-color: #ffffff !important;
-  text-fill-color: #ffffff !important;
-}
-
-.section.section-tertiary * {
-  color: #ffffff !important;
-  opacity: 1 !important;
 }
 
 /* OVERRIDE ALL BUTTON STYLING - SIMPLIFIED APPROACH */

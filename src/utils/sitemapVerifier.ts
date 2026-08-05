@@ -141,16 +141,18 @@ async function checkUrlViaServerProxy(url: string): Promise<VerificationResult |
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 12000);
   try {
-    const { status } = await fetchViaServerProxy(url, {
+    const { status, initialStatus, finalUrl } = await fetchViaServerProxy(url, {
       headOnly: true,
       signal: controller.signal,
     });
 
+    // The proxy follows redirects; the first hop's status tells us whether
+    // this URL redirects even when the final destination is a 200
+    if (initialStatus && initialStatus >= 300 && initialStatus < 400) {
+      return { url, status: 'redirect', statusCode: initialStatus, redirectUrl: finalUrl };
+    }
     if (status >= 200 && status < 300) {
       return { url, status: 'ok', statusCode: status };
-    }
-    if (status >= 300 && status < 400) {
-      return { url, status: 'redirect', statusCode: status };
     }
     return { url, status: 'error', statusCode: status };
   } catch {

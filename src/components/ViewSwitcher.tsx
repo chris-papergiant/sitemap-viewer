@@ -21,6 +21,7 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
 }) => {
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -75,6 +76,25 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
     if (newView === currentView) return;
     onViewChange(newView);
   };
+
+  // Arrow-key navigation between tabs (roving tabindex pattern)
+  const handleTabKeyDown = (e: React.KeyboardEvent, index: number) => {
+    let next: number | null = null;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      next = (index + 1) % views.length;
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      next = (index - 1 + views.length) % views.length;
+    } else if (e.key === 'Home') {
+      next = 0;
+    } else if (e.key === 'End') {
+      next = views.length - 1;
+    }
+    if (next !== null) {
+      e.preventDefault();
+      handleViewChange(views[next].type);
+      tabRefs.current[next]?.focus();
+    }
+  };
   
   const handleClearSearch = () => {
     setLocalSearchQuery('');
@@ -102,15 +122,18 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
           {/* Clean tab-style view switcher */}
           <div className="flex flex-wrap items-center gap-3 sm:gap-4">
             <div className="flex bg-gray-100 rounded-full p-1" role="tablist" aria-label="View options">
-              {views.map((view) => {
+              {views.map((view, index) => {
                 const isActive = currentView === view.type;
-                
+
                 return (
                   <button
                     key={view.type}
+                    ref={el => { tabRefs.current[index] = el; }}
                     onClick={() => handleViewChange(view.type)}
+                    onKeyDown={(e) => handleTabKeyDown(e, index)}
                     role="tab"
                     aria-selected={isActive}
+                    tabIndex={isActive ? 0 : -1}
                     aria-label={`${view.label} view`}
                     title={view.description}
                     className={`

@@ -12,7 +12,7 @@ import StructuralInsights from './components/StructuralInsights';
 import StatsSkeleton from './components/skeletons/StatsSkeleton';
 import TreeSkeleton from './components/skeletons/TreeSkeleton';
 import InsightsSkeleton from './components/skeletons/InsightsSkeleton';
-import { fetchSitemap, parseSitemapXML, SitemapEntry } from './utils/sitemapParser';
+import { fetchSitemap, fetchSitemapDirect, parseSitemapXML, SitemapEntry } from './utils/sitemapParser';
 import { buildTreeFromUrls, TreeNode } from './utils/treeBuilder';
 import { exportTreeToCSV } from './utils/csvExporter';
 import ProgressiveCrawler, { CrawlState } from './utils/progressiveCrawler';
@@ -20,13 +20,36 @@ import { Download, Play, Pause, Square, FileJson, Link, Check, ShieldCheck } fro
 import { exportJSON, copyShareLink } from './utils/exportUtils';
 import { verifySitemapUrls, VerificationReport } from './utils/sitemapVerifier';
 
-// URL parameter utilities for shareable links
+// Extract a hostname for analytics without ever throwing on malformed input
+const safeDomain = (url: string): string => {
+  try {
+    return new URL(url.startsWith('http') ? url : `https://${url}`).hostname;
+  } catch {
+    return url;
+  }
+};
+
+// URL parameter utilities for shareable links.
+// URLSearchParams handles encoding; older share links were double-encoded,
+// so getUrlParams decodes a second time when the value still looks encoded.
+const decodeLegacyParam = (value: string | null): string | null => {
+  if (!value) return null;
+  if (/%[0-9A-Fa-f]{2}/.test(value) && !value.includes('://')) {
+    try {
+      return decodeURIComponent(value);
+    } catch {
+      return value;
+    }
+  }
+  return value;
+};
+
 const updateUrlParams = (url: string, view: ViewType, search?: string) => {
   const params = new URLSearchParams();
-  params.set('url', encodeURIComponent(url));
+  params.set('url', url);
   params.set('view', view);
   if (search) {
-    params.set('search', encodeURIComponent(search));
+    params.set('search', search);
   }
 
   const newUrl = `${window.location.pathname}?${params.toString()}`;
@@ -36,9 +59,9 @@ const updateUrlParams = (url: string, view: ViewType, search?: string) => {
 const getUrlParams = () => {
   const params = new URLSearchParams(window.location.search);
   return {
-    url: params.get('url') ? decodeURIComponent(params.get('url')!) : null,
+    url: decodeLegacyParam(params.get('url')),
     view: (params.get('view') as ViewType) || 'explorer',
-    search: params.get('search') ? decodeURIComponent(params.get('search')!) : ''
+    search: decodeLegacyParam(params.get('search')) || ''
   };
 };
 
@@ -89,7 +112,7 @@ function App() {
     // Track sitemap search event
     track('sitemap_search', {
       url: url,
-      domain: url.includes('://') ? new URL(url.startsWith('http') ? url : `https://${url}`).hostname : url,
+      domain: safeDomain(url),
       timestamp: new Date().toISOString()
     });
 
@@ -116,30 +139,39 @@ function App() {
         setProgressMessage('Processing sitemap index...');
         setProgressSubMessage(`Found ${parsed.sitemaps.length} nested sitemaps`);
         
+        // Fetch child sitemaps with limited concurrency. These are exact
+        // URLs, so use the direct fetcher — probing robots.txt and the
+        // common locations for every failed child would be very slow.
         const allUrls: SitemapEntry[] = [];
         const totalSitemaps = parsed.sitemaps.length;
-        
-        for (let i = 0; i < totalSitemaps; i++) {
-          const sitemapUrl = parsed.sitemaps[i];
-          const progressPercent = 30 + ((i / totalSitemaps) * 50);
-          setProgress(progressPercent);
-          setProgressMessage(`Fetching nested sitemaps...`);
-          setProgressSubMessage(`Processing ${i + 1} of ${totalSitemaps} sitemaps`);
-          
+        const childSitemaps = [...parsed.sitemaps];
+        const CONCURRENCY = 4;
+        let completed = 0;
+
+        setProgressMessage(`Fetching nested sitemaps...`);
+
+        const fetchNextChild = async (): Promise<void> => {
+          const sitemapUrl = childSitemaps.shift();
+          if (!sitemapUrl) return;
+
           try {
             console.log(`Fetching nested sitemap: ${sitemapUrl}`);
-            const subXml = await fetchSitemap(sitemapUrl, (message) => {
-              setProgressSubMessage(`Processing ${i + 1} of ${totalSitemaps} - ${message}`);
-            });
+            const subXml = await fetchSitemapDirect(sitemapUrl);
             const subParsed = parseSitemapXML(subXml);
             allUrls.push(...subParsed.urls);
-            
-            // Update with current URL count
-            setProgressSubMessage(`Processing ${i + 1} of ${totalSitemaps} - Found ${allUrls.length} URLs so far`);
           } catch (err) {
             console.error(`Failed to fetch nested sitemap: ${sitemapUrl}`, err);
           }
-        }
+
+          completed++;
+          setProgress(30 + ((completed / totalSitemaps) * 50));
+          setProgressSubMessage(`Processed ${completed} of ${totalSitemaps} sitemaps - ${allUrls.length} URLs so far`);
+          return fetchNextChild();
+        };
+
+        await Promise.all(
+          Array.from({ length: Math.min(CONCURRENCY, totalSitemaps) }, () => fetchNextChild())
+        );
         
         if (allUrls.length > 0) {
           setProgress(85);
@@ -157,7 +189,7 @@ function App() {
 
           // Track successful sitemap fetch
           track('sitemap_success', {
-            domain: new URL(url.startsWith('http') ? url : `https://${url}`).hostname,
+            domain: safeDomain(url),
             urlCount: allUrls.length,
             type: 'sitemap_index'
           });
@@ -187,7 +219,7 @@ function App() {
 
         // Track successful sitemap fetch
         track('sitemap_success', {
-          domain: new URL(url.startsWith('http') ? url : `https://${url}`).hostname,
+          domain: safeDomain(url),
           urlCount: parsed.urls.length,
           type: 'sitemap'
         });
@@ -202,7 +234,7 @@ function App() {
       
       // Track sitemap failure
       track('sitemap_failed', {
-        domain: url.includes('://') ? new URL(url.startsWith('http') ? url : `https://${url}`).hostname : url,
+        domain: safeDomain(url),
         error: err instanceof Error ? err.message : 'Unknown error',
         type: 'sitemap'
       });
@@ -231,7 +263,7 @@ function App() {
     
     // Track crawler start event
     track('crawler_started', {
-      domain: url.includes('://') ? new URL(url.startsWith('http') ? url : `https://${url}`).hostname : url,
+      domain: safeDomain(url),
       timestamp: new Date().toISOString()
     });
     
@@ -279,12 +311,15 @@ function App() {
           duration: `${(Date.now() - state.stats.startTime) / 1000}s`
         });
         setIsCrawling(false);
+        if (state.status === 'error') {
+          setError('This website could not be crawled — it appears to be blocking automated access to both its sitemap and its pages.');
+        }
         if (state.status === 'complete') {
           setError(null); // Clear any previous errors
           
           // Track successful crawl
           track('crawler_success', {
-            domain: url.includes('://') ? new URL(url.startsWith('http') ? url : `https://${url}`).hostname : url,
+            domain: safeDomain(url),
             pagesDiscovered: state.discovered.size,
             pagesProcessed: state.stats.pagesProcessed,
             duration: Math.round((Date.now() - state.stats.startTime) / 1000)
@@ -321,7 +356,7 @@ function App() {
       
       // Track crawler failure
       track('crawler_failed', {
-        domain: url.includes('://') ? new URL(url.startsWith('http') ? url : `https://${url}`).hostname : url,
+        domain: safeDomain(url),
         error: errorMessage,
         type: errorMessage.includes('403') ? 'blocked' : 'network'
       });
@@ -356,8 +391,13 @@ function App() {
     }
   };
 
-  // Load from URL parameters on initial load
+  // Load from URL parameters on initial load. The ref guard prevents a
+  // double fetch from React StrictMode's dev-mode effect replay.
+  const didInitRef = useRef(false);
   useEffect(() => {
+    if (didInitRef.current) return;
+    didInitRef.current = true;
+
     const { url, view, search } = getUrlParams();
     if (url) {
       setCurrentView(view);
@@ -376,7 +416,7 @@ function App() {
       track('view_changed', {
         from: previousView,
         to: view,
-        domain: currentUrl.includes('://') ? new URL(currentUrl.startsWith('http') ? currentUrl : `https://${currentUrl}`).hostname : currentUrl,
+        domain: safeDomain(currentUrl),
         urlCount: urls.length
       });
     }
@@ -438,8 +478,8 @@ function App() {
         {error && (
           <section 
             className={`animate-slide-up ${
-              isVisualisationMode 
-                ? 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50'
+              isVisualisationMode
+                ? 'fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-50'
                 : 'section section-primary'
             }`} 
             role="alert" 
@@ -469,17 +509,12 @@ function App() {
                   </div>
                   <div>
                     <h3 className="text-card-title font-serif text-error mb-4">
-                      No sitemap found
+                      Unable to map this website
                     </h3>
                     <div className="card-minimal p-4 bg-error-50 border border-error-200">
                       <p className="text-body text-error-600">
-                        {currentUrl ? (
-                          <>
-                            <strong>{currentUrl}</strong> doesn't have a sitemap, or is blocking access to it.
-                          </>
-                        ) : (
-                          'The website doesn\'t have a sitemap, or is blocking access to it.'
-                        )}
+                        {currentUrl && <><strong>{safeDomain(currentUrl)}</strong>: </>}
+                        {error}
                       </p>
                     </div>
                     <div className="mt-4 space-y-2">
@@ -558,7 +593,7 @@ function App() {
                   </div>
                   
                   <h2 className="text-card-title font-serif absolute left-1/2 transform -translate-x-1/2 pointer-events-none hidden md:block">
-                    {currentUrl ? (currentUrl.includes('://') ? new URL(currentUrl).hostname : currentUrl) : 'Sitemap Analysis'}
+                    {currentUrl ? safeDomain(currentUrl) : 'Sitemap Analysis'}
                   </h2>
                   
                   <div className="flex items-center gap-2 sm:gap-3 flex-wrap">

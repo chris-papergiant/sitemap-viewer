@@ -30,6 +30,9 @@ export const isProtectedSite = (url: string): boolean => {
 export interface ServerFetchResult {
   content: string;
   status: number;
+  /** Status of the first response, before any redirects were followed */
+  initialStatus?: number;
+  redirected?: boolean;
   contentType?: string;
   finalUrl?: string;
 }
@@ -65,6 +68,8 @@ export const fetchViaServerProxy = async (
   return {
     content: data.content ?? '',
     status: data.status,
+    initialStatus: data.initialStatus,
+    redirected: data.redirected,
     contentType: data.contentType,
     finalUrl: data.url,
   };
