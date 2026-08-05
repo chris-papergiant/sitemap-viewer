@@ -1,4 +1,5 @@
 import { XMLParser } from 'fast-xml-parser';
+import { isProtectedSite, fetchTextViaServerProxy } from './serverFetch';
 
 export interface SitemapEntry {
   loc: string;
@@ -142,11 +143,23 @@ export const fetchSitemap = async (url: string, onProgress?: (message: string) =
       onProgress?.(`Checking robots.txt for sitemap directives...`);
       try {
         const robotsContent = await fetchWithProxies(sitemapUrl, corsProxies, onProgress);
-        const sitemapMatch = robotsContent.match(/^Sitemap:\s*(.+)$/im);
-        if (sitemapMatch && sitemapMatch[1]) {
-          const robotsSitemapUrl = sitemapMatch[1].trim();
-          onProgress?.(`Found sitemap in robots.txt: ${new URL(robotsSitemapUrl).pathname}`);
-          return await fetchWithProxies(robotsSitemapUrl, corsProxies, onProgress);
+        // robots.txt can declare multiple sitemaps (common on gov.au sites) — try each
+        const robotsSitemapUrls = Array.from(
+          robotsContent.matchAll(/^Sitemap:\s*(.+)$/gim),
+          match => match[1].trim()
+        ).filter(Boolean);
+
+        if (robotsSitemapUrls.length > 0) {
+          for (const robotsSitemapUrl of robotsSitemapUrls) {
+            try {
+              onProgress?.(`Found sitemap in robots.txt: ${new URL(robotsSitemapUrl).pathname}`);
+              return await fetchWithProxies(robotsSitemapUrl, corsProxies, onProgress);
+            } catch (error) {
+              console.log(`Failed to fetch sitemap from robots.txt entry ${robotsSitemapUrl}:`, error);
+              continue;
+            }
+          }
+          onProgress?.(`Sitemaps listed in robots.txt were unreachable, trying common locations...`);
         } else {
           onProgress?.(`No sitemap found in robots.txt, trying common locations...`);
         }
@@ -174,7 +187,7 @@ export const fetchSitemap = async (url: string, onProgress?: (message: string) =
   
   // Provide more specific error message based on the failure type
   if (lastError?.message.includes('403') || lastError?.message.includes('Forbidden')) {
-    throw new Error(`No sitemap found. The website is blocking access to its sitemap (403 Forbidden). This is common for government and banking sites.`);
+    throw new Error(`No sitemap found. The website is blocking access to its sitemap (403 Forbidden), even via server-side fetching. Try the crawler instead.`);
   } else if (lastError?.message.includes('404') || lastError?.message.includes('Not Found')) {
     throw new Error(`No sitemap found at any standard location. The website may not have a public sitemap.xml file.`);
   } else {
@@ -182,71 +195,111 @@ export const fetchSitemap = async (url: string, onProgress?: (message: string) =
   }
 };
 
+// Validate that fetched content looks like a sitemap (or robots.txt, which is exempt)
+const validateSitemapContent = (text: string, url: string): string => {
+  if (url.endsWith('/robots.txt')) {
+    return text;
+  }
+
+  // Check if it's actually XML content
+  const isXML = text.includes('<?xml') || text.includes('<urlset') || text.includes('<sitemapindex');
+
+  // Only reject if it's clearly an HTML error page
+  const isHTMLError = !isXML && (
+    (text.includes('<html') && (text.includes('404') || text.includes('403'))) ||
+    text.includes('<!DOCTYPE html') && (text.includes('Not Found') || text.includes('Forbidden'))
+  );
+
+  if (isHTMLError) {
+    console.log('Response appears to be an HTML error page');
+    throw new Error('Response appears to be an error page, not a valid sitemap');
+  }
+
+  if (!isXML) {
+    console.log('Response does not contain XML markers. First 200 chars:', text.substring(0, 200));
+    throw new Error('Response does not appear to be a valid sitemap XML');
+  }
+
+  return text;
+};
+
 // Helper function to try multiple CORS proxies
 const fetchWithProxies = async (url: string, corsProxies: ((url: string) => string)[], onProgress?: (message: string) => void): Promise<string> => {
   let lastError: Error | null = null;
-  
+  let triedServerProxy = false;
+
+  // Government/protected sites block public CORS proxies but respond fine to
+  // direct server-side requests — route them through our own proxy first
+  if (isProtectedSite(url)) {
+    triedServerProxy = true;
+    try {
+      onProgress?.('Government site detected — fetching via server...');
+      const content = await fetchTextViaServerProxy(url);
+      const validated = validateSitemapContent(content, url);
+      console.log('Successfully fetched via server proxy, length:', validated.length);
+      return validated;
+    } catch (error) {
+      console.log('Server proxy failed for protected site, falling back to CORS proxies:', error);
+      lastError = error instanceof Error ? error : new Error('Unknown error');
+    }
+  }
+
   for (const proxyFn of corsProxies) {
     try {
       const proxyUrl = proxyFn(url);
       console.log('Trying CORS proxy:', proxyUrl);
-      
+
       // Different proxies require different headers
       const headers: HeadersInit = {
         'Accept': 'application/xml, text/xml, */*'
       };
-      
+
       // Only add X-Requested-With for proxy.cors.sh
       if (proxyUrl.includes('proxy.cors.sh')) {
         headers['X-Requested-With'] = 'XMLHttpRequest';
       }
-      
+
       const response = await fetch(proxyUrl, {
         mode: 'cors',
         headers
       });
-      
+
       console.log(`Proxy response status: ${response.status} ${response.statusText}`);
-      
+
       if (!response.ok) {
         console.log(`Proxy returned error: ${response.status} ${response.statusText}`);
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
+
       const text = await response.text();
-      
+
       // Check if we got valid XML (skip this check for robots.txt)
-      if (!url.endsWith('/robots.txt')) {
-        // Check if it's actually XML content
-        const isXML = text.includes('<?xml') || text.includes('<urlset') || text.includes('<sitemapindex');
-        
-        // Only reject if it's clearly an HTML error page
-        const isHTMLError = !isXML && (
-          (text.includes('<html') && (text.includes('404') || text.includes('403'))) ||
-          text.includes('<!DOCTYPE html') && (text.includes('Not Found') || text.includes('Forbidden'))
-        );
-        
-        if (isHTMLError) {
-          console.log('Response appears to be an HTML error page');
-          throw new Error('Response appears to be an error page, not a valid sitemap');
-        }
-        
-        if (!isXML) {
-          console.log('Response does not contain XML markers. First 200 chars:', text.substring(0, 200));
-          throw new Error('Response does not appear to be a valid sitemap XML');
-        }
-      }
-      
-      console.log('Successfully fetched content, length:', text.length);
-      return text;
+      const validated = validateSitemapContent(text, url);
+
+      console.log('Successfully fetched content, length:', validated.length);
+      return validated;
     } catch (error) {
       console.error('Proxy failed:', error);
       lastError = error instanceof Error ? error : new Error('Unknown error');
       continue;
     }
   }
-  
-  // NEW: Try server-side browser fetch as fallback
+
+  // Try our lightweight server proxy before the heavy browser-engine fallback
+  if (!triedServerProxy) {
+    try {
+      onProgress?.('Public proxies failed — fetching via server...');
+      const content = await fetchTextViaServerProxy(url);
+      const validated = validateSitemapContent(content, url);
+      console.log('Successfully fetched via server proxy, length:', validated.length);
+      return validated;
+    } catch (error) {
+      console.log('Server proxy fallback failed:', error);
+      lastError = error instanceof Error ? error : new Error('Unknown error');
+    }
+  }
+
+  // Try server-side browser fetch as final fallback
   console.log('All CORS proxies failed, trying server-side browser fetch...');
   
   // Notify progress callback about server-side fetch
@@ -274,7 +327,7 @@ const fetchWithProxies = async (url: string, corsProxies: ((url: string) => stri
     
     if (data.success) {
       console.log('Successfully fetched via server-side browser, length:', data.content?.length);
-      return data.content;
+      return validateSitemapContent(data.content, url);
     } else {
       throw new Error(data.error || 'Server-side fetch failed');
     }

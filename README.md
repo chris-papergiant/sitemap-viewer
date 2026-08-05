@@ -14,6 +14,7 @@ A web-based tool to fetch and visualize XML sitemaps from any URL, displaying th
 - **Sitemap Statistics**: View total URLs, max depth, domains, and priority distribution
 - **Nested Sitemap Support**: Automatically handles sitemap index files
 - **CORS Proxy**: Built-in proxy to handle cross-origin requests
+- **Government Site Support**: gov.au (and .gov/.mil/.edu.au) sites block public CORS proxies, so they're routed through a first-party serverless proxy (`/api/fetch-proxy`), with a headless-browser fallback (`/api/browser-fetch`) for sites with aggressive bot protection. Note: the `/api/*` functions require deployment on Vercel (or `vercel dev` locally); plain `vite dev` serves only the client-side proxy path.
 
 ## Installation
 
