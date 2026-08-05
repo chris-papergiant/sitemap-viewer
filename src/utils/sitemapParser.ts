@@ -13,19 +13,20 @@ export interface ParsedSitemap {
   sitemaps?: string[];
 }
 
-export const parseSitemapXML = (xmlContent: string): ParsedSitemap => {
-  const parser = new XMLParser({
-    ignoreAttributes: false,
-    attributeNamePrefix: '@_',
-    parseAttributeValue: true,
-    removeNSPrefix: true, // Remove namespace prefixes
-    parseTagValue: true,
-    trimValues: true,
-  });
+// Reuse a single parser instance — XMLParser is stateless across parse() calls
+const xmlParser = new XMLParser({
+  ignoreAttributes: false,
+  attributeNamePrefix: '@_',
+  parseAttributeValue: true,
+  removeNSPrefix: true, // Remove namespace prefixes
+  parseTagValue: true,
+  trimValues: true,
+});
 
+export const parseSitemapXML = (xmlContent: string): ParsedSitemap => {
   console.log('Parsing XML content, length:', xmlContent.length);
-  
-  const result = parser.parse(xmlContent);
+
+  const result = xmlParser.parse(xmlContent);
   const parsed: ParsedSitemap = { urls: [] };
   
   console.log('Parsed result:', JSON.stringify(result, null, 2).substring(0, 500));

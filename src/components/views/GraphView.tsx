@@ -12,27 +12,51 @@ interface GraphViewProps {
 
 const GraphView: React.FC<GraphViewProps> = ({ data, searchQuery, siteName = 'sitemap' }) => {
   const svgRef = useRef<SVGSVGElement>(null);
+  const tooltipRef = useRef<HTMLDivElement | null>(null);
   const [dimensions, setDimensions] = useState({ width: 1200, height: 600 });
   const [zoomLevel, setZoomLevel] = useState(1);
   const zoomRef = useRef<any>(null);
 
+  // Resize handler, debounced with requestAnimationFrame
   useEffect(() => {
+    let rafId: number;
     const handleResize = () => {
-      const container = svgRef.current?.parentElement;
-      if (container) {
-        const style = window.getComputedStyle(container);
-        const paddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
-        setDimensions({
-          width: container.clientWidth - paddingX,
-          // Keep a usable minimum height on small screens
-          height: Math.max(380, Math.min(600, window.innerHeight - 260))
-        });
-      }
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const container = svgRef.current?.parentElement;
+        if (container) {
+          const style = window.getComputedStyle(container);
+          const paddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+          setDimensions({
+            width: container.clientWidth - paddingX,
+            // Keep a usable minimum height on small screens
+            height: Math.max(380, Math.min(600, window.innerHeight - 260))
+          });
+        }
+      });
     };
 
     handleResize();
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      cancelAnimationFrame(rafId);
+    };
+  }, []);
+
+  // Create one persistent tooltip element instead of rebuilding it on every
+  // data/search/dimension change
+  useEffect(() => {
+    const el = document.createElement('div');
+    el.className = 'tooltip';
+    el.style.opacity = '0';
+    document.body.appendChild(el);
+    tooltipRef.current = el;
+
+    return () => {
+      el.remove();
+      tooltipRef.current = null;
+    };
   }, []);
 
   useEffect(() => {
@@ -69,9 +93,8 @@ const GraphView: React.FC<GraphViewProps> = ({ data, searchQuery, siteName = 'si
     const root = d3.hierarchy(data);
     const treeData = treeLayout(root);
 
-    const tooltip = d3.select('body').append('div')
-      .attr('class', 'tooltip')
-      .style('opacity', 0);
+    if (!tooltipRef.current) return;
+    const tooltip = d3.select(tooltipRef.current);
 
     // Helper function to check if node matches search
     const matchesSearch = (node: any) => {
@@ -195,8 +218,9 @@ const GraphView: React.FC<GraphViewProps> = ({ data, searchQuery, siteName = 'si
       }
     }
 
+    // Hide (not remove) the persistent tooltip when re-rendering
     return () => {
-      tooltip.remove();
+      tooltip.style('opacity', 0);
     };
   }, [data, dimensions, searchQuery]);
 

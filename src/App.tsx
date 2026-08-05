@@ -1,11 +1,10 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { track } from '@vercel/analytics';
 import SitemapFetcher from './components/SitemapFetcher';
 import SitemapStats from './components/SitemapStats';
 import ViewSwitcher, { ViewType } from './components/ViewSwitcher';
 import ExplorerView from './components/views/ExplorerView';
 import ColumnsView from './components/views/ColumnsView';
-import GraphView from './components/views/GraphView';
 import { Button } from './components/ui/Button';
 import Logo from './components/Logo';
 import StructuralInsights from './components/StructuralInsights';
@@ -19,6 +18,10 @@ import ProgressiveCrawler, { CrawlState } from './utils/progressiveCrawler';
 import { Download, Play, Pause, Square, FileJson, Link, Check, ShieldCheck } from 'lucide-react';
 import { exportJSON, copyShareLink } from './utils/exportUtils';
 import { verifySitemapUrls, VerificationReport } from './utils/sitemapVerifier';
+
+// Lazy-load GraphView so the large D3 dependency lives in its own chunk,
+// fetched only when the user opens the graph view
+const GraphView = lazy(() => import('./components/views/GraphView'));
 
 // Extract a hostname for analytics without ever throwing on malformed input
 const safeDomain = (url: string): string => {
@@ -96,6 +99,26 @@ function App() {
     }
     return 'sitemap';
   };
+
+  // Memoized description used by both Site Overview sections
+  const domainDescription = useMemo(() => {
+    if (!currentUrl) return "your website's structure";
+    const domain = safeDomain(currentUrl);
+    const commonTlds = ['.com', '.org', '.net', '.io', '.au', '.gov', '.edu'];
+    return commonTlds.some(tld => domain.endsWith(tld))
+      ? `${domain}'s structure`
+      : `the structure of ${domain}`;
+  }, [currentUrl]);
+
+  // Shared reset handler for the Back button and error card
+  const handleReset = useCallback(() => {
+    setIsVisualisationMode(false);
+    setTreeData(null);
+    setUrls([]);
+    setCurrentUrl('');
+    setSearchQuery('');
+    setError(null);
+  }, []);
 
   const handleFetchSitemap = async (url: string) => {
     setIsLoading(true);
@@ -276,6 +299,7 @@ function App() {
     // Initialize crawler with detailed logging
     console.log('%c📊 Initializing crawler with callback...', 'color: #4ECDC4');
     let callbackCount = 0;
+    let lastDiscoveredCount = -1;
     
     crawlerRef.current = new ProgressiveCrawler((state) => {
       callbackCount++;
@@ -291,12 +315,16 @@ function App() {
       
       setCrawlState(state);
       setTreeData(state.tree);
-      
-      // Convert discovered URLs to SitemapEntry format for stats
-      const mockUrls: SitemapEntry[] = Array.from(state.discovered).map(url => ({
-        loc: url
-      }));
-      setUrls(mockUrls);
+
+      // Convert discovered URLs to SitemapEntry format for stats — skip the
+      // rebuild when nothing new was discovered since the last callback
+      if (state.discovered.size !== lastDiscoveredCount) {
+        lastDiscoveredCount = state.discovered.size;
+        const mockUrls: SitemapEntry[] = Array.from(state.discovered).map(url => ({
+          loc: url
+        }));
+        setUrls(mockUrls);
+      }
       
       // Update progress messages
       setProgressMessage(`Discovering site structure...`);
@@ -533,14 +561,7 @@ function App() {
                     {isVisualisationMode && (
                       <Button
                         variant="secondary"
-                        onClick={() => {
-                          setIsVisualisationMode(false);
-                          setTreeData(null);
-                          setUrls([]);
-                          setCurrentUrl('');
-                          setSearchQuery('');
-                          setError(null);
-                        }}
+                        onClick={handleReset}
                         className="mt-6"
                       >
                         Try Another Website
@@ -574,13 +595,7 @@ function App() {
                     </div>
                     <Button
                       variant="ghost"
-                      onClick={() => {
-                        setIsVisualisationMode(false);
-                        setTreeData(null);
-                        setUrls([]);
-                        setCurrentUrl('');
-                        setSearchQuery('');
-                      }}
+                      onClick={handleReset}
                       iconLeft={
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -783,17 +798,7 @@ function App() {
                       Site Overview
                     </h2>
                     <p className="text-gray-600 max-w-2xl mx-auto">
-                      Key metrics and insights from {currentUrl ? (() => {
-                        try {
-                          const url = currentUrl.startsWith('http') ? currentUrl : `https://${currentUrl}`;
-                          const domain = new URL(url).hostname;
-                          return domain.endsWith('.com') || domain.endsWith('.org') || domain.endsWith('.net') || domain.endsWith('.io') || domain.endsWith('.au') || domain.endsWith('.gov') || domain.endsWith('.edu') 
-                            ? `${domain}'s structure`
-                            : `the structure of ${domain}`;
-                        } catch {
-                          return 'your website\'s structure';
-                        }
-                      })() : 'your website\'s structure'}
+                      Key metrics and insights from {domainDescription}
                     </p>
                   </div>
                   {treeData && urls.length > 0 ? (
@@ -888,7 +893,9 @@ function App() {
                   )}
                   {currentView === 'graph' && (
                     <div className="animate-fade-in">
-                      <GraphView data={treeData} searchQuery={searchQuery} siteName={getSiteName()} />
+                      <Suspense fallback={<TreeSkeleton />}>
+                        <GraphView data={treeData} searchQuery={searchQuery} siteName={getSiteName()} />
+                      </Suspense>
                     </div>
                   )}
                   </div>
@@ -906,17 +913,7 @@ function App() {
                       Site Overview
                     </h2>
                     <p className="text-gray-600 max-w-2xl mx-auto">
-                      Key metrics and insights from {currentUrl ? (() => {
-                        try {
-                          const url = currentUrl.startsWith('http') ? currentUrl : `https://${currentUrl}`;
-                          const domain = new URL(url).hostname;
-                          return domain.endsWith('.com') || domain.endsWith('.org') || domain.endsWith('.net') || domain.endsWith('.io') || domain.endsWith('.au') || domain.endsWith('.gov') || domain.endsWith('.edu')
-                            ? `${domain}'s structure`
-                            : `the structure of ${domain}`;
-                        } catch {
-                          return 'your website\'s structure';
-                        }
-                      })() : 'your website\'s structure'}
+                      Key metrics and insights from {domainDescription}
                     </p>
                   </div>
                   <SitemapStats treeData={treeData} urls={urls} />

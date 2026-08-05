@@ -84,28 +84,19 @@ export function treeToCSV(rootNode: TreeNode): string {
  */
 export function downloadCSV(csvContent: string, filename: string = 'sitemap.csv') {
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
-  
-  // For IE 10+ support (type assertion for legacy browser API)
-  const nav = navigator as any;
-  if (nav.msSaveBlob) {
-    nav.msSaveBlob(blob, filename);
-  } else {
-    // Modern browsers
-    const url = URL.createObjectURL(blob);
-    link.href = url;
-    link.download = filename;
-    link.style.display = 'none';
-    
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    // Clean up the URL
-    setTimeout(() => {
-      URL.revokeObjectURL(url);
-    }, 100);
-  }
+  link.href = url;
+  link.download = filename;
+  link.style.display = 'none';
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 100);
 }
 
 /**
