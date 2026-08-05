@@ -131,8 +131,8 @@ const TreeItem: React.FC<TreeItemProps> = ({
               )}
               
               {node.data.lastmod && (
-                <span 
-                  className="text-xs text-gray-500 flex items-center"
+                <span
+                  className="text-xs text-gray-500 hidden sm:flex items-center"
                   title={`Last modified: ${node.data.lastmod}`}
                 >
                   <Clock className="w-3 h-3 mr-1" />
@@ -263,7 +263,7 @@ const ExplorerView: React.FC<ExplorerViewProps> = ({ data, searchQuery }) => {
     >
       {/* Search Results Panel */}
       {searchQuery && (
-        <div className="border-b border-gray-200 bg-primary-pink/5 px-6 py-4">
+        <div className="border-b border-gray-200 bg-primary-pink/5 px-4 sm:px-6 py-4">
           <div className="flex items-center gap-2 mb-3">
             <Search className="w-4 h-4 text-primary-pink" />
             <h3 className="text-sm font-semibold text-gray-900">
@@ -323,7 +323,7 @@ const ExplorerView: React.FC<ExplorerViewProps> = ({ data, searchQuery }) => {
         </div>
       )}
       
-      <div className="border-b border-gray-200 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between space-y-3 sm:space-y-0">
+      <div className="border-b border-gray-200 px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between space-y-3 sm:space-y-0">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">
             Site Structure Explorer
@@ -352,8 +352,8 @@ const ExplorerView: React.FC<ExplorerViewProps> = ({ data, searchQuery }) => {
         </div>
       </div>
       
-      <div 
-        className="p-6 h-full min-h-[400px] max-h-[600px] overflow-y-auto focus:outline-none"
+      <div
+        className="p-3 sm:p-6 h-full min-h-[400px] max-h-[70vh] sm:max-h-[600px] overflow-y-auto focus:outline-none"
         tabIndex={-1}
         role="tree"
         aria-label="Sitemap structure tree"

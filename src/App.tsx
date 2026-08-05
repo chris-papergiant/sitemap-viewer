@@ -404,9 +404,9 @@ function App() {
         <header 
           className="section-primary border-b border-neutral-100"
         >
-          <div className="max-w-7xl mx-auto px-content-h py-6 text-center">
+          <div className="max-w-7xl mx-auto px-4 sm:px-content-h py-6 text-center">
             <div className="flex flex-col items-center">
-              <div className="w-20 h-20 bg-white rounded-lg flex items-center justify-center mb-6 text-primary-pink border border-gray-200">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-lg flex items-center justify-center mb-6 text-primary-pink border border-gray-200">
                 <Logo size="large" />
               </div>
               <h1 className="text-display font-serif mb-4">
@@ -447,8 +447,8 @@ function App() {
             aria-atomic="true"
           >
             <div className={isVisualisationMode ? 'max-w-2xl mx-auto px-4' : 'max-w-4xl mx-auto'}>
-              <div className="card-elevated p-8 border-l-4 border-l-error relative">
-                <div className="flex items-start gap-6">
+              <div className="card-elevated p-5 sm:p-8 border-l-4 border-l-error relative max-h-[85vh] overflow-y-auto">
+                <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
                   <div className="flex-shrink-0">
                     <div className="bg-error text-white p-3 rounded-lg">
                       <svg 
@@ -532,9 +532,9 @@ function App() {
             {/* Visualization mode header - Paper Giant Style */}
             {isVisualisationMode && (
               <div className="sticky top-0 z-50 bg-white border-b border-neutral-200">
-                <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="text-primary-pink">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 sm:gap-4">
+                    <div className="text-primary-pink hidden sm:block">
                       <Logo size="small" />
                     </div>
                     <Button
@@ -564,11 +564,11 @@ function App() {
                   <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                     {/* Crawl status and controls */}
                     {isCrawling && crawlState && (
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-primary-pink/10 rounded-lg">
+                      <div className="flex items-center gap-1.5 sm:gap-3">
+                        <div className="flex items-center gap-2 px-2 sm:px-3 py-1.5 bg-primary-pink/10 rounded-lg">
                           <div className="w-2 h-2 bg-primary-pink rounded-full animate-pulse" />
-                          <span className="text-xs font-medium text-gray-700">
-                            Crawling: {crawlState.stats.pagesFound} pages found
+                          <span className="text-xs font-medium text-gray-700 whitespace-nowrap">
+                            <span className="hidden sm:inline">Crawling: </span>{crawlState.stats.pagesFound} pages<span className="hidden sm:inline"> found</span>
                           </span>
                         </div>
                         
@@ -603,7 +603,7 @@ function App() {
                     {/* Export & verify buttons */}
                     <button
                       onClick={handleVerifyUrls}
-                      className={`hidden sm:flex p-2 border border-gray-300 rounded-lg shadow-sm transition-colors ${
+                      className={`flex p-2 border border-gray-300 rounded-lg shadow-sm transition-colors ${
                         isVerifying ? 'bg-amber-50 border-amber-300' : 'bg-white hover:bg-gray-50'
                       }`}
                       title={isVerifying ? 'Verifying...' : 'Verify URLs are accessible'}
@@ -621,7 +621,7 @@ function App() {
                           setTimeout(() => setLinkCopied(false), 2000);
                         }
                       }}
-                      className="hidden sm:flex p-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors"
+                      className="flex p-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors"
                       title={linkCopied ? 'Copied!' : 'Copy share link'}
                       aria-label="Copy shareable link"
                     >
@@ -638,7 +638,7 @@ function App() {
                           exportJSON(treeData, urls, getSiteName());
                         }
                       }}
-                      className="hidden sm:flex p-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors"
+                      className="flex p-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition-colors"
                       title="Download as JSON"
                       aria-label="Download sitemap as JSON"
                     >
@@ -660,18 +660,19 @@ function App() {
                           exportTreeToCSV(treeData, siteName);
                         }
                       }}
-                      className="flex items-center gap-2 px-4 py-2 bg-primary-pink text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
+                      className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary-pink text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
                       aria-label="Download sitemap as CSV"
                     >
                       <Download className="w-4 h-4" />
-                      <span>Download CSV</span>
+                      <span className="hidden sm:inline">Download CSV</span>
+                      <span className="sm:hidden">CSV</span>
                     </button>
                   </div>
                 </div>
 
                 {/* Fetch progress bar - shown during sitemap loading */}
                 {isLoading && (
-                  <div className="bg-gray-50 border-b border-gray-200 px-6 py-2">
+                  <div className="bg-gray-50 border-b border-gray-200 px-4 sm:px-6 py-2">
                     <div className="max-w-7xl mx-auto">
                       <div className="flex items-center justify-between mb-1.5">
                         <span className="text-xs font-medium text-gray-600">
@@ -696,10 +697,10 @@ function App() {
 
                 {/* Crawling progress bar */}
                 {isCrawling && crawlState && (
-                  <div className="bg-primary-pink/5 border-b border-primary-pink/20 px-6 py-3">
+                  <div className="bg-primary-pink/5 border-b border-primary-pink/20 px-4 sm:px-6 py-3">
                     <div className="max-w-7xl mx-auto">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-4 text-sm">
+                      <div className="flex items-center justify-between mb-2 gap-2">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
                           <span className="font-medium text-gray-700">
                             Discovering site structure...
                           </span>
@@ -740,9 +741,9 @@ function App() {
             
             {/* Stats Section - Shown in both modes */}
             {isVisualisationMode && (
-              <div className="bg-gray-50 py-12">
-                <div className="max-w-7xl mx-auto px-6">
-                  <div className="text-center mb-10">
+              <div className="bg-gray-50 py-8 sm:py-12">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6">
+                  <div className="text-center mb-8 sm:mb-10">
                     <h2 className="text-card-title font-serif text-gray-900 mb-3">
                       Site Overview
                     </h2>
@@ -818,8 +819,8 @@ function App() {
 
             {/* Connected view switcher and visualisation container */}
             <div className={`${
-              isVisualisationMode 
-                ? 'max-w-7xl mx-auto px-6 py-8' 
+              isVisualisationMode
+                ? 'max-w-7xl mx-auto px-2 sm:px-6 py-4 sm:py-8'
                 : 'card overflow-hidden max-w-7xl mx-auto'
             }`}>
               <div className={isVisualisationMode ? 'card overflow-hidden' : ''}>
@@ -863,8 +864,8 @@ function App() {
             
             {/* Stats Section - Only show in non-visualization mode */}
             {!isVisualisationMode && treeData && (
-              <section className="bg-gray-50 py-12">
-                <div className="max-w-7xl mx-auto px-6">
+              <section className="bg-gray-50 py-8 sm:py-12">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6">
                   <div className="text-center mb-10">
                     <h2 className="text-card-title font-serif text-gray-900 mb-3">
                       Site Overview
@@ -895,8 +896,8 @@ function App() {
 
       {/* Footer - Show in both modes but different styling */}
       <footer className={`${
-        isVisualisationMode 
-          ? 'bg-gray-900 text-white py-12 mt-auto' 
+        isVisualisationMode
+          ? 'bg-gray-900 text-white py-8 sm:py-12 mt-auto px-4 sm:px-6'
           : 'section section-tertiary'
       }`}>
           <div className="max-w-7xl mx-auto">

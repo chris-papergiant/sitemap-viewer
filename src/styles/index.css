@@ -47,22 +47,40 @@
     color: #ffffff !important;
   }
 
+  /* Mobile-first heading sizes, scaling up to Paper Giant's desktop sizes */
   h1 {
-    font-size: 3.375rem; /* 54px - Paper Giant's hero size */
-    line-height: 3.75rem; /* 60px */
+    font-size: 2.25rem; /* 36px on mobile */
+    line-height: 2.625rem; /* 42px */
     letter-spacing: -0.031em; /* Paper Giant's specific spacing */
   }
 
   h2 {
-    font-size: 2.25rem; /* 36px */
-    line-height: 2.5rem; /* 40px */
+    font-size: 1.75rem; /* 28px on mobile */
+    line-height: 2.125rem; /* 34px */
     letter-spacing: -0.02em;
   }
 
   h3 {
-    font-size: 1.5rem; /* 24px */
-    line-height: 2rem; /* 32px */
+    font-size: 1.375rem; /* 22px on mobile */
+    line-height: 1.875rem; /* 30px */
     letter-spacing: -0.015em;
+  }
+
+  @media (min-width: 640px) {
+    h1 {
+      font-size: 3.375rem; /* 54px - Paper Giant's hero size */
+      line-height: 3.75rem; /* 60px */
+    }
+
+    h2 {
+      font-size: 2.25rem; /* 36px */
+      line-height: 2.5rem; /* 40px */
+    }
+
+    h3 {
+      font-size: 1.5rem; /* 24px */
+      line-height: 2rem; /* 32px */
+    }
   }
 
   /* Paper Giant body text */
@@ -157,14 +175,24 @@
     @apply top-6;
   }
 
-  /* Paper Giant Section System */
+  /* Paper Giant Section System - compact on mobile, full spacing from sm up */
   .section {
     @apply transition-all duration-500;
-    padding: 6rem 2.5rem; /* 96px vertical, 40px horizontal - Paper Giant spacing */
+    padding: 3rem 1rem; /* 48px vertical, 16px horizontal on mobile */
   }
-  
+
   .section-lg {
-    padding: 8rem 2.5rem; /* 128px vertical, 40px horizontal */
+    padding: 4rem 1rem; /* 64px vertical, 16px horizontal on mobile */
+  }
+
+  @media (min-width: 640px) {
+    .section {
+      padding: 6rem 2.5rem; /* 96px vertical, 40px horizontal - Paper Giant spacing */
+    }
+
+    .section-lg {
+      padding: 8rem 2.5rem; /* 128px vertical, 40px horizontal */
+    }
   }
   
   .section-primary {
@@ -203,11 +231,11 @@
 
   /* Paper Giant Typography Utilities */
   .text-display {
-    @apply font-serif text-5xl;
+    @apply font-serif text-3xl sm:text-4xl lg:text-5xl;
   }
-  
+
   .text-section-title {
-    @apply font-serif text-4xl;
+    @apply font-serif text-3xl sm:text-4xl;
   }
   
   .section-tertiary .text-section-title {
@@ -227,7 +255,7 @@
   }
   
   .text-card-title {
-    @apply font-serif text-2xl;
+    @apply font-serif text-xl sm:text-2xl;
   }
   
   .text-body {

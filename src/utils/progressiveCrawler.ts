@@ -1,4 +1,5 @@
 import { TreeNode } from './treeBuilder';
+import { isProtectedSite, fetchTextViaServerProxy } from './serverFetch';
 
 // CORS proxy configuration - using multiple proxies as fallbacks
 // Note: api.codetabs.com tends to be more reliable for many sites
@@ -220,10 +221,30 @@ class ProgressiveCrawler {
   private async fetchWithProxy(url: string): Promise<string> {
     this.requestCount++;
     console.group(`%c🌐 Request #${this.requestCount}: Fetching ${url}`, 'color: #4CAF50');
-    
+
     let lastError: Error | null = null;
     let proxyAttempt = 0;
-    
+    let triedServerProxy = false;
+
+    // Government/protected sites block public CORS proxies but respond fine
+    // to direct server-side requests — route them through our own proxy first
+    if (isProtectedSite(url)) {
+      triedServerProxy = true;
+      try {
+        this.log('info', '🏛️ Protected site detected — using server-side proxy first');
+        const html = await this.fetchViaServerProxy(url);
+        console.groupEnd(); // End request
+        return html;
+      } catch (error) {
+        this.log('warn', 'Server-side proxy failed, falling back to CORS proxies:', error);
+        if (error instanceof Error && error.message.includes('aborted')) {
+          console.groupEnd(); // End request
+          throw error;
+        }
+        lastError = error instanceof Error ? error : new Error(String(error));
+      }
+    }
+
     for (const proxy of CORS_PROXIES) {
       proxyAttempt++;
       const proxyName = proxy.includes('cors.sh') ? 'cors.sh' :
@@ -351,9 +372,23 @@ class ProgressiveCrawler {
       attempts: proxyAttempt,
       lastError: lastError?.message
     });
-    
+
     console.groupEnd(); // End request
-    
+
+    // Try our lightweight server proxy before the heavy browser-engine fallback
+    if (!triedServerProxy) {
+      try {
+        this.log('info', '🔄 Trying lightweight server-side proxy...');
+        return await this.fetchViaServerProxy(url);
+      } catch (error) {
+        this.log('warn', 'Server-side proxy fallback failed:', error);
+        if (error instanceof Error && error.message.includes('aborted')) {
+          throw error;
+        }
+        lastError = error instanceof Error ? error : new Error(String(error));
+      }
+    }
+
     // NEW: Try server-side browser fetch as fallback
     console.group(`%c🌐 Attempting server-side browser fetch`, 'color: #9C27B0');
     this.log('info', '🔄 All CORS proxies failed, trying server-side browser fetch...');
@@ -400,6 +435,33 @@ class ProgressiveCrawler {
         throw new Error(`All methods failed - ${lastError?.message || 'Unknown error'}`);
       }
     }
+  }
+
+  private async fetchViaServerProxy(url: string): Promise<string> {
+    const startTime = Date.now();
+    const html = await fetchTextViaServerProxy(url, this.abortController?.signal ?? undefined);
+
+    const isCloudflareChallenge = html.includes('Just a moment...') ||
+                                  html.includes('Checking your browser') ||
+                                  html.includes('cf-browser-verification');
+    const isValidHTML = html.length > 500 &&
+                        (html.includes('<!DOCTYPE') || html.includes('<html')) &&
+                        !isCloudflareChallenge;
+
+    if (!isValidHTML) {
+      this.log('warn', 'Server proxy returned invalid content', {
+        htmlLength: html.length,
+        isCloudflare: isCloudflareChallenge,
+        firstChars: html.substring(0, 200)
+      });
+      throw new Error('Server proxy returned invalid content');
+    }
+
+    this.log('info', `✅ Success with server-side proxy!`, {
+      htmlLength: html.length,
+      fetchTimeMs: Date.now() - startTime
+    });
+    return html;
   }
 
   private async processPage(task: CrawlTask): Promise<void> {

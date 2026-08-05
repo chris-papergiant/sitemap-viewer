@@ -74,7 +74,7 @@ const SitemapFetcher: React.FC<SitemapFetcherProps> = ({ onFetch, isLoading }) =
 
   return (
     <section className="w-full max-w-3xl mx-auto" aria-label="Website URL input">
-      <div className="card p-12">
+      <div className="card p-6 sm:p-12">
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="space-y-3">
             <label htmlFor="sitemap-url" className="sr-only">Website URL</label>
