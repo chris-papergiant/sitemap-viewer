@@ -78,14 +78,14 @@ const ColumnsView: React.FC<ColumnsViewProps> = ({ data, searchQuery }) => {
   return (
     <div className="bg-white flex flex-col h-full min-h-[500px]">
       {/* Header with description and breadcrumb */}
-      <div className="border-b border-gray-200 px-6 py-4">
+      <div className="border-b border-gray-200 px-4 sm:px-6 py-4">
         <div className="flex items-center justify-between mb-2">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">Column Browser</h3>
             <p className="text-sm text-gray-500">Click a folder to drill into its contents. Each column shows one level of the site hierarchy.</p>
           </div>
         </div>
-        <div className="flex items-center space-x-1 text-sm">
+        <div className="flex flex-wrap items-center gap-y-1 space-x-1 text-sm">
           {columns.map((col, idx) => (
             <React.Fragment key={idx}>
               {idx > 0 && <ChevronRight className="w-4 h-4 text-gray-400" />}
@@ -102,7 +102,7 @@ const ColumnsView: React.FC<ColumnsViewProps> = ({ data, searchQuery }) => {
         {columns.map((column, columnIndex) => (
           <div
             key={columnIndex}
-            className="min-w-[250px] border-r border-gray-200 flex flex-col"
+            className="min-w-[75vw] sm:min-w-[250px] sm:max-w-[320px] border-r border-gray-200 flex flex-col"
           >
             <div className="flex-1 overflow-y-auto">
               {column.items.length === 0 ? (
@@ -161,7 +161,7 @@ const ColumnsView: React.FC<ColumnsViewProps> = ({ data, searchQuery }) => {
         
         {/* Details Panel */}
         {selectedUrl && (
-          <div className="min-w-[300px] bg-gray-50 p-4">
+          <div className="min-w-[75vw] sm:min-w-[300px] bg-gray-50 p-4">
             <h3 className="font-semibold text-gray-900 mb-4">URL Details</h3>
             <div className="space-y-3">
               <div>

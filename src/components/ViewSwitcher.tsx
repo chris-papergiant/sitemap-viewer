@@ -97,10 +97,10 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
       aria-label="View controls"
       role="region"
     >
-      <div className="px-6 py-4">
+      <div className="px-4 sm:px-6 py-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           {/* Clean tab-style view switcher */}
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
             <div className="flex bg-gray-100 rounded-full p-1" role="tablist" aria-label="View options">
               {views.map((view) => {
                 const isActive = currentView === view.type;
@@ -114,7 +114,7 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
                     aria-label={`${view.label} view`}
                     title={view.description}
                     className={`
-                      flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium
+                      flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-full text-sm font-medium
                       transition-all duration-200
                       ${isActive 
                         ? 'bg-black text-white shadow-sm' 
@@ -133,7 +133,7 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
             
             {/* URL count badge */}
             <div className="flex items-center">
-              <span className="bg-primary-pink text-white px-4 py-2 rounded-full text-sm font-semibold">
+              <span className="bg-primary-pink text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap">
                 {urlCount.toLocaleString()} URLs
               </span>
             </div>
@@ -141,8 +141,8 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
           
           {/* Clean search */}
           {onSearch && (
-            <div className="flex items-center">
-              <div className="relative">
+            <div className="flex items-center w-full sm:w-auto">
+              <div className="relative w-full sm:w-auto">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   ref={searchInputRef}
@@ -155,7 +155,7 @@ const ViewSwitcher: React.FC<ViewSwitcherProps> = ({
                     }
                   }}
                   placeholder="Filter URLs..."
-                  className="pl-9 pr-8 py-2 w-48 sm:w-56 text-sm bg-gray-50 border border-gray-200 
+                  className="pl-9 pr-8 py-2 w-full sm:w-56 text-sm bg-gray-50 border border-gray-200
                     rounded-full placeholder-gray-400 text-gray-900
                     focus:outline-none focus:ring-2 focus:ring-primary-pink/20 focus:border-primary-pink transition-all"
                   aria-label="Filter URLs"

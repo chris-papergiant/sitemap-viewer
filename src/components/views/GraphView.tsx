@@ -22,7 +22,8 @@ const GraphView: React.FC<GraphViewProps> = ({ data, searchQuery, siteName = 'si
       if (container) {
         setDimensions({
           width: container.clientWidth - 32, // Account for padding
-          height: Math.min(600, window.innerHeight - 300)
+          // Keep a usable minimum height on small screens
+          height: Math.max(380, Math.min(600, window.innerHeight - 260))
         });
       }
     };
@@ -38,7 +39,11 @@ const GraphView: React.FC<GraphViewProps> = ({ data, searchQuery, siteName = 'si
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
 
-    const margin = { top: 20, right: 120, bottom: 20, left: 120 };
+    // Narrow screens can't afford 120px label gutters on each side
+    const isNarrow = dimensions.width < 640;
+    const margin = isNarrow
+      ? { top: 20, right: 40, bottom: 20, left: 60 }
+      : { top: 20, right: 120, bottom: 20, left: 120 };
     const width = dimensions.width - margin.right - margin.left;
     const height = dimensions.height - margin.top - margin.bottom;
 
@@ -238,7 +243,7 @@ const GraphView: React.FC<GraphViewProps> = ({ data, searchQuery, siteName = 'si
         <p className="text-sm text-gray-500">Interactive map of your site structure. Drag to pan, scroll to zoom, click a node to open the page.</p>
       </div>
       <div className="relative">
-      <div className="absolute top-4 right-4 z-10 flex flex-col space-y-2">
+      <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-10 flex flex-col space-y-1.5 sm:space-y-2">
         <button
           onClick={() => handleZoom('in')}
           className="p-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm"
@@ -305,7 +310,8 @@ const GraphView: React.FC<GraphViewProps> = ({ data, searchQuery, siteName = 'si
           ref={svgRef}
           width={dimensions.width}
           height={dimensions.height}
-          className="border border-gray-200 rounded"
+          className="border border-gray-200 rounded max-w-full"
+          style={{ touchAction: 'none' }}
         />
       </div>
       </div>
