@@ -1,5 +1,5 @@
 import { XMLParser } from 'fast-xml-parser';
-import { isProtectedSite, fetchTextViaServerProxy } from './serverFetch';
+import { isProtectedSite, fetchTextViaServerProxy, BotWallError } from './serverFetch';
 
 export interface SitemapEntry {
   loc: string;
@@ -177,26 +177,30 @@ export const fetchSitemap = async (url: string, onProgress?: (message: string) =
           onProgress?.(`No sitemap found in robots.txt, trying common locations...`);
         }
       } catch (error) {
+        // A bot-firewall block applies to the whole origin — every other
+        // location and the crawler will hit the same wall. Stop now.
+        if (error instanceof BotWallError) throw error;
         console.log('Failed to check robots.txt:', error);
         onProgress?.(`Couldn't access robots.txt, trying common locations...`);
       }
       continue;
     }
-    
+
     const locationName = new URL(sitemapUrl).pathname;
     onProgress?.(`Trying ${locationName}... (${i}/${sitemapCandidates.length - 1})`);
-    
+
     try {
       const result = await fetchWithProxies(sitemapUrl, corsProxies, onProgress);
       console.log(`Successfully fetched sitemap from: ${sitemapUrl}`);
       return result;
     } catch (error) {
+      if (error instanceof BotWallError) throw error;
       console.log(`Failed to fetch from ${sitemapUrl}:`, error);
       lastError = error instanceof Error ? error : new Error('Unknown error');
       continue;
     }
   }
-  
+
   // Provide more specific error message based on the failure type
   if (lastError?.message.includes('403') || lastError?.message.includes('Forbidden')) {
     throw new Error(`No sitemap found. The website is blocking access to its sitemap (403 Forbidden), even via server-side fetching. Try the crawler instead.`);
@@ -251,6 +255,10 @@ const fetchWithProxies = async (url: string, corsProxies: ((url: string) => stri
       console.log('Successfully fetched via server proxy, length:', validated.length);
       return validated;
     } catch (error) {
+      // A bot-firewall block is IP-reputation based: the public CORS proxies
+      // and the browser tier are all datacenter-hosted and will hit the same
+      // wall. Don't waste time on them — propagate immediately.
+      if (error instanceof BotWallError) throw error;
       console.log('Server proxy failed for protected site, falling back to CORS proxies:', error);
       lastError = error instanceof Error ? error : new Error('Unknown error');
     }
@@ -306,6 +314,7 @@ const fetchWithProxies = async (url: string, corsProxies: ((url: string) => stri
       console.log('Successfully fetched via server proxy, length:', validated.length);
       return validated;
     } catch (error) {
+      if (error instanceof BotWallError) throw error;
       console.log('Server proxy fallback failed:', error);
       lastError = error instanceof Error ? error : new Error('Unknown error');
     }

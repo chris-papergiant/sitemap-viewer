@@ -12,10 +12,20 @@
 //   www.index.gov.au      sitemap index -> 3 paginated child sitemaps
 //   www.redirect.gov.au   /sitemap.xml 301s to www.basic.gov.au
 //   www.nositemap.gov.au  no sitemap anywhere; crawlable HTML pages
+//   www.walled.gov.au     Cloudflare bot-wall — 403 on everything (like
+//                         vichealth.vic.gov.au)
 
 import http from 'node:http';
 
 export const GOV_PORT = 8091;
+
+export const MOCK_HOSTS = [
+  'www.basic.gov.au',
+  'www.index.gov.au',
+  'www.redirect.gov.au',
+  'www.nositemap.gov.au',
+  'www.walled.gov.au',
+];
 
 const XMLDECL = '<?xml version="1.0" encoding="UTF-8"?>';
 
@@ -58,6 +68,21 @@ const send = (res, status, contentType, body, extraHeaders = {}) => {
 const notFound = (res) => send(res, 404, 'text/html',
   '<!DOCTYPE html><html><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>Error 404</p></body></html>');
 
+// A faithful-enough Cloudflare "you have been blocked" interstitial, served
+// with server: cloudflare — mirrors what vichealth.vic.gov.au returns.
+const CLOUDFLARE_BLOCK = `<!DOCTYPE html>
+<html class="no-js" lang="en-US"><head>
+<title>Attention Required! | Cloudflare</title>
+<meta name="robots" content="noindex, nofollow" />
+<link rel="stylesheet" href="/cdn-cgi/styles/cf.errors.css" />
+</head><body>
+<div id="cf-wrapper"><div id="cf-error-details" class="cf-error-details-wrapper">
+<h1 data-translate="block_headline">Sorry, you have been blocked</h1>
+<h2 class="cf-subheadline"><span data-translate="unable_to_access">You are unable to access</span> walled.gov.au</h2>
+<p data-translate="blocked_why_detail">This website is using a security service to protect itself from online attacks.</p>
+</div></div>
+</body></html>`;
+
 export function startMockGovServer() {
   const server = http.createServer((req, res) => {
     const host = (req.headers.host || '').split(':')[0].toLowerCase();
@@ -70,6 +95,14 @@ export function startMockGovServer() {
     // blocked at the network layer in the E2E tests); the app's server-side
     // proxy sends browser headers and passes.
     const ua = req.headers['user-agent'] || '';
+
+    // Cloudflare-walled site: 403 + interstitial for EVERY request, even
+    // browser-shaped ones — the block is IP-reputation based, so a realistic
+    // User-Agent doesn't help (exactly like vichealth.vic.gov.au).
+    if (host === 'www.walled.gov.au') {
+      return send(res, 403, 'text/html; charset=UTF-8', CLOUDFLARE_BLOCK, { server: 'cloudflare' });
+    }
+
     if (!ua.includes('Mozilla')) {
       return send(res, 403, 'text/html',
         '<!DOCTYPE html><html><body><h1>403 Forbidden</h1><p>Automated access denied.</p></body></html>');

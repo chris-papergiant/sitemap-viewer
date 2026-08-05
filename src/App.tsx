@@ -12,6 +12,7 @@ import StatsSkeleton from './components/skeletons/StatsSkeleton';
 import TreeSkeleton from './components/skeletons/TreeSkeleton';
 import InsightsSkeleton from './components/skeletons/InsightsSkeleton';
 import { fetchSitemap, fetchSitemapDirect, parseSitemapXML, SitemapEntry } from './utils/sitemapParser';
+import { BotWallError } from './utils/serverFetch';
 import { buildTreeFromUrls, TreeNode } from './utils/treeBuilder';
 import { exportTreeToCSV } from './utils/csvExporter';
 import ProgressiveCrawler, { CrawlState } from './utils/progressiveCrawler';
@@ -71,6 +72,9 @@ const getUrlParams = () => {
 function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // 'botwall' suppresses the generic troubleshooting advice, which would
+  // contradict the specific firewall explanation
+  const [errorKind, setErrorKind] = useState<'generic' | 'botwall'>('generic');
   const [treeData, setTreeData] = useState<TreeNode | null>(null);
   const [urls, setUrls] = useState<SitemapEntry[]>([]);
   const [progress, setProgress] = useState(0);
@@ -123,6 +127,7 @@ function App() {
   const handleFetchSitemap = async (url: string) => {
     setIsLoading(true);
     setError(null);
+    setErrorKind('generic');
     setTreeData(null);
     setUrls([]);
     setProgress(0);
@@ -254,15 +259,31 @@ function App() {
       }
     } catch (err) {
       console.error('Error during sitemap fetch:', err);
-      
+
       // Track sitemap failure
       track('sitemap_failed', {
         domain: safeDomain(url),
         error: err instanceof Error ? err.message : 'Unknown error',
         type: 'sitemap'
       });
-      
-      // Automatically start crawling when sitemap is not found
+
+      // A bot-firewall block (Cloudflare, Akamai...) rejects every
+      // datacenter-hosted request identically — the crawler would just hit
+      // the same wall, slowly. Stop and explain honestly instead.
+      if (err instanceof BotWallError) {
+        track('sitemap_botwall', { domain: safeDomain(url), vendor: err.vendor });
+        setErrorKind('botwall');
+        setError(
+          `This site is protected by ${err.vendor}'s bot-management firewall, which blocks automated tools from accessing it. ` +
+          `It's a firewall on the website, not a problem with the URL — the same block stops every automated sitemap or crawling tool, ` +
+          `whether it runs here or anywhere else. You can still open the site normally in your own browser.`
+        );
+        setIsLoading(false);
+        setProgress(0);
+        return;
+      }
+
+      // Otherwise the site simply has no reachable sitemap — try crawling
       console.log('Sitemap not found, automatically starting crawler...');
       setIsLoading(false); // Stop the sitemap loading state
       setProgress(0);
@@ -537,7 +558,7 @@ function App() {
                   </div>
                   <div>
                     <h3 className="text-card-title font-serif text-error mb-4">
-                      Unable to map this website
+                      {errorKind === 'botwall' ? 'This website blocks automated tools' : 'Unable to map this website'}
                     </h3>
                     <div className="card-minimal p-4 bg-error-50 border border-error-200">
                       <p className="text-body text-error-600">
@@ -545,17 +566,19 @@ function App() {
                         {error}
                       </p>
                     </div>
-                    <div className="mt-4 space-y-2">
-                      <p className="text-sm text-neutral-700 font-body">
-                        <strong>What you can do:</strong>
-                      </p>
-                      <ul className="text-sm text-neutral-600 font-body space-y-1 ml-4">
-                        <li>• Check if the website URL is correct</li>
-                        <li>• Try adding or removing 'www' from the URL</li>
-                        <li>• Some websites block automated access to their sitemaps</li>
-                        <li>• The website may not have a public sitemap.xml file</li>
-                      </ul>
-                    </div>
+                    {errorKind === 'generic' && (
+                      <div className="mt-4 space-y-2">
+                        <p className="text-sm text-neutral-700 font-body">
+                          <strong>What you can do:</strong>
+                        </p>
+                        <ul className="text-sm text-neutral-600 font-body space-y-1 ml-4">
+                          <li>• Check if the website URL is correct</li>
+                          <li>• Try adding or removing 'www' from the URL</li>
+                          <li>• Some websites block automated access to their sitemaps</li>
+                          <li>• The website may not have a public sitemap.xml file</li>
+                        </ul>
+                      </div>
+                    )}
                     
                     
                     {isVisualisationMode && (

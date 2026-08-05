@@ -70,6 +70,23 @@ export async function runE2eTests({ chromiumPath }) {
     if (errVisible) throw new Error('error card shown despite successful crawl');
   });
 
+  await scenario('E6 Cloudflare-walled site fails fast with a specific, honest message', async (page) => {
+    const start = Date.now();
+    await submit(page, 'www.walled.gov.au');
+    // Must surface the bot-wall message — not the generic "no sitemap" text,
+    // and not after a long doomed crawl.
+    await page.waitForSelector('text=/bot-management firewall/i', { timeout: 30000 });
+    const elapsed = Date.now() - start;
+    const body = await page.evaluate(() => document.querySelector('.card-elevated')?.textContent || '');
+    if (!/Cloudflare/i.test(body)) throw new Error('message does not name the firewall vendor');
+    // Short-circuit: no crawl progress UI should ever have appeared
+    const crawled = await page.evaluate(() =>
+      [...document.querySelectorAll('*')].some(el => /Discovering site structure/i.test(el.textContent || '')));
+    if (crawled) throw new Error('crawler ran despite a bot-wall (should short-circuit)');
+    // Fast-fail: well under the multi-minute crawl path
+    if (elapsed > 25000) throw new Error(`too slow (${elapsed}ms) — did not short-circuit`);
+  });
+
   await scenario('E5 URL verification uses server-side HEAD checks', async (page) => {
     await submit(page, 'www.basic.gov.au');
     await page.waitForSelector('text=60 URLs', { timeout: 60000 });

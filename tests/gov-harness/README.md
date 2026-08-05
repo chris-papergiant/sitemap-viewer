@@ -40,6 +40,7 @@ fake req/res:
 - U8 HEAD → GET fallback on 405
 - U9 oversized body rejected before the Vercel 4.5 MB response cap
 - U10 per-IP rate limit
+- U11 Cloudflare bot-wall (403 + interstitial) flagged via `botWall`
 
 **`browser-fetch` handler tests** — real headless Chromium:
 - B1 rejects unauthenticated requests
@@ -54,6 +55,25 @@ pass:
 - E3 redirecting `/sitemap.xml` (301) followed with per-hop validation
 - E4 no sitemap anywhere → automatic crawler fallback through the server proxy
 - E5 URL verification via server-side HEAD checks
+- E6 Cloudflare-walled site (like vichealth.vic.gov.au) → fails fast (<25 s,
+  no doomed crawl) with a specific, honest message naming the firewall
+
+### The bot-wall case (Cloudflare / Akamai)
+
+Some gov sites (e.g. `vichealth.vic.gov.au`) sit behind a bot-management
+firewall that returns HTTP 403 to **every datacenter-hosted request** — the
+public CORS proxies, our serverless proxy, and the headless-browser tier
+alike — because the block is keyed on IP reputation, not request shape. No
+proxy or header trick bypasses it; only a residential IP (a real user's own
+browser) gets through, and CORS then blocks that for cross-origin XML.
+
+Because this is genuinely unfetchable server-side, the app does the honest
+thing: `fetch-proxy` detects the interstitial and returns a `botWall` vendor
+label, the client raises `BotWallError`, and the fetch **short-circuits** —
+no grinding through 12 sitemap locations and then a doomed crawl. The user
+gets a clear, specific message in ~200 ms instead of a vague failure after
+minutes. Scenario E6 asserts all of that; the `www.walled.gov.au` mock host
+reproduces the exact Cloudflare block.
 
 **Live domains** (`live-tests.mjs`, `LIVE=1` only) — real `.gov.au` sites,
 classified honestly:

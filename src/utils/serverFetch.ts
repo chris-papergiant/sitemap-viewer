@@ -33,9 +33,36 @@ export interface ServerFetchResult {
   /** Status of the first response, before any redirects were followed */
   initialStatus?: number;
   redirected?: boolean;
+  /** Vendor label if a bot-management firewall block was detected, else null */
+  botWall?: string | null;
   contentType?: string;
   finalUrl?: string;
 }
+
+/**
+ * Raised when a bot-management firewall (Cloudflare, Akamai, ...) blocks the
+ * request. These blocks are keyed on the server's IP reputation, so they hit
+ * every datacenter-hosted fetch path — there is no point retrying other
+ * proxies or falling back to the crawler. Callers should stop and explain.
+ */
+export class BotWallError extends Error {
+  vendor: string;
+  hostname: string;
+  constructor(vendor: string, hostname: string) {
+    super(`${vendor} bot firewall blocked access to ${hostname}`);
+    this.name = 'BotWallError';
+    this.vendor = vendor;
+    this.hostname = hostname;
+  }
+}
+
+const hostOf = (url: string): string => {
+  try {
+    return new URL(url.startsWith('http') ? url : `https://${url}`).hostname;
+  } catch {
+    return url;
+  }
+};
 
 /**
  * Fetch a URL through our own serverless proxy (/api/fetch-proxy).
@@ -70,19 +97,25 @@ export const fetchViaServerProxy = async (
     status: data.status,
     initialStatus: data.initialStatus,
     redirected: data.redirected,
+    botWall: data.botWall,
     contentType: data.contentType,
     finalUrl: data.url,
   };
 };
 
 /**
- * Like fetchViaServerProxy, but treats HTTP error statuses as failures.
+ * Like fetchViaServerProxy, but treats HTTP error statuses as failures and
+ * raises BotWallError when a firewall block is detected (so callers can stop
+ * the whole fallback cascade instead of retrying paths that will also fail).
  */
 export const fetchTextViaServerProxy = async (
   url: string,
   signal?: AbortSignal
 ): Promise<string> => {
   const result = await fetchViaServerProxy(url, { signal });
+  if (result.botWall) {
+    throw new BotWallError(result.botWall, hostOf(url));
+  }
   if (result.status >= 400) {
     throw new Error(`HTTP ${result.status}`);
   }

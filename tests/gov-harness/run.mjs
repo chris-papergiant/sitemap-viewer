@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { buildApi, API_BUILD_DIR } from './build-api.mjs';
-import { startMockGovServer } from './mock-gov-server.mjs';
+import { startMockGovServer, MOCK_HOSTS } from './mock-gov-server.mjs';
 import { startAppServer, APP_PORT } from './app-server.mjs';
 import { runUnitTests, runBrowserFetchTests } from './unit-tests.mjs';
 import { runE2eTests } from './e2e-tests.mjs';
@@ -30,7 +30,6 @@ const harnessDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(harnessDir, '..', '..');
 const distDir = join(repoRoot, 'dist');
 
-const MOCK_HOSTS = ['www.basic.gov.au', 'www.index.gov.au', 'www.redirect.gov.au', 'www.nositemap.gov.au'];
 const CHROMIUM = process.env.CHROMIUM_EXECUTABLE_PATH || '/opt/pw-browsers/chromium';
 
 const log = (msg) => console.log(`[gov-harness] ${msg}`);

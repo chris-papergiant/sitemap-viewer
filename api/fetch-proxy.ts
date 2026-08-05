@@ -44,6 +44,39 @@ const isTrustedTestHost = (hostname: string): boolean => {
   return entries.some(e => hostname === e || hostname.endsWith(e));
 };
 
+// Detect a bot-management firewall block (Cloudflare, Akamai, etc.). These
+// blocks are keyed on the caller's IP reputation, so they hit every
+// datacenter-hosted fetch path identically — the public CORS proxies, our
+// serverless proxy, and even the headless-browser tier. Recognising one lets
+// the client fail fast with an honest explanation instead of grinding through
+// every fallback and then a doomed crawl. Returns a short vendor label or null.
+const detectBotWall = (status: number, server: string, body: string): string | null => {
+  const s = (server || '').toLowerCase();
+  const sample = body.slice(0, 4000);
+  // Cloudflare hard block / managed challenge
+  if (
+    /Attention Required!\s*\|\s*Cloudflare/i.test(sample) ||
+    /Sorry, you have been blocked/i.test(sample) ||
+    (s.includes('cloudflare') && /cf-error-details|cf-wrapper|cdn-cgi\/styles\/cf/i.test(sample)) ||
+    /Just a moment\.\.\.|challenge-platform|cf_chl_opt|__cf_chl/i.test(sample)
+  ) {
+    return 'Cloudflare';
+  }
+  // Akamai / generic "Access Denied" reference-error page
+  if (
+    /Access Denied.*You don.?t have permission to access/is.test(sample) ||
+    /Reference&#32;#[0-9a-f.]+/i.test(sample) ||
+    (s.includes('akamai') && status === 403)
+  ) {
+    return 'Akamai';
+  }
+  // Imperva / Incapsula
+  if (/_Incapsula_Resource|Incapsula incident ID|Powered by Imperva/i.test(sample)) {
+    return 'Imperva';
+  }
+  return null;
+};
+
 // Reject hostnames/addresses in private or special-use ranges (SSRF protection)
 const isPrivateAddress = (addr: string): boolean => {
   const host = addr.toLowerCase().replace(/^\[|\]$/g, '');
@@ -178,6 +211,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const contentType = response.headers.get('content-type') || undefined;
+    const serverHeader = response.headers.get('server') || '';
     let content = '';
 
     if (!headOnly) {
@@ -205,15 +239,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await response.body?.cancel();
     }
 
-    console.log(`[Fetch Proxy] ${response.status} from ${currentUrl.href} (${content.length} bytes)`);
+    // Flag bot-firewall blocks so the client can stop early and explain why.
+    // Only meaningful on a body-bearing error response; for HEAD we can still
+    // catch the clearest case from the server header + 403.
+    const botWall = !headOnly
+      ? detectBotWall(response.status, serverHeader, content)
+      : (response.status === 403 && /cloudflare|akamai/i.test(serverHeader)
+          ? (serverHeader.toLowerCase().includes('cloudflare') ? 'Cloudflare' : 'Akamai')
+          : null);
+
+    console.log(`[Fetch Proxy] ${response.status} from ${currentUrl.href} (${content.length} bytes)${botWall ? ` [${botWall} bot-wall]` : ''}`);
 
     // success means the request completed; callers inspect `status` for HTTP
-    // errors and `initialStatus` to detect redirects.
+    // errors, `initialStatus` for redirects, and `botWall` for a firewall block.
     return res.status(200).json({
       success: true,
       status: response.status,
       initialStatus,
       redirected: currentUrl.href !== target.href,
+      botWall,
       content,
       contentType,
       url: currentUrl.href,

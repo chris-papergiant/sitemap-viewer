@@ -126,6 +126,13 @@ export async function runUnitTests({ apiBuildDir }) {
     assert(/too large/i.test(res.payload.error), `unexpected error: ${res.payload.error}`);
   });
 
+  await test('U11 flags a Cloudflare bot-wall (403 + interstitial) via botWall', async () => {
+    const res = await callProxy(handler, { targetUrl: GOV('www.walled.gov.au', '/sitemap.xml') });
+    assert(res.payload.success === true, 'request itself should complete');
+    assert(res.payload.status === 403, `status ${res.payload.status}`);
+    assert(res.payload.botWall === 'Cloudflare', `botWall=${res.payload.botWall}`);
+  });
+
   await test('U10 enforces the per-IP rate limit', async () => {
     process.env.FETCH_PROXY_RATE_LIMIT = '3';
     try {
