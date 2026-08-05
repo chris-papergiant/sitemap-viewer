@@ -33,3 +33,4 @@ Thumbs.db
 
 # Vercel
 .vercel
+tests/gov-harness/.build/

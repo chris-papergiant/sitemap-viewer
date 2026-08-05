@@ -12,8 +12,9 @@ import { guardRequest } from './_security';
 let executablePath: string | null = null;
 
 // Launching Chromium is the most expensive thing this app does — keep the
-// per-IP budget low.
-const RATE_LIMIT_PER_MINUTE = 10;
+// per-IP budget low. Overridable for the test harness.
+const getRateLimit = (): number =>
+  parseInt(process.env.BROWSER_FETCH_RATE_LIMIT || '', 10) || 10;
 
 export default async function handler(
   req: VercelRequest,
@@ -24,7 +25,7 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  if (!guardRequest(req, res, RATE_LIMIT_PER_MINUTE)) {
+  if (!guardRequest(req, res, getRateLimit())) {
     return;
   }
 
@@ -47,28 +48,33 @@ export default async function handler(
   let browser = null;
 
   try {
-    // Get or cache the executable path
+    // Get or cache the executable path. CHROMIUM_EXECUTABLE_PATH lets the
+    // test harness (or a non-lambda deployment) point at a system Chromium
+    // instead of unpacking the sparticuz lambda binary.
+    const localChromium = process.env.CHROMIUM_EXECUTABLE_PATH;
     if (!executablePath) {
-      // Get the chromium binary path from the included package
-      executablePath = await chromiumPack.executablePath();
+      executablePath = localChromium || await chromiumPack.executablePath();
     }
 
-    // Launch browser with serverless-optimized settings
+    // Launch browser with serverless-optimized settings. The sparticuz args
+    // are lambda-specific — use a minimal set with a system Chromium.
     browser = await chromium.launch({
-      args: [
-        ...chromiumPack.args,
-        '--disable-web-security',
-        '--disable-features=IsolateOrigins',
-        '--disable-site-isolation-trials',
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--single-process',
-        '--disable-gpu'
-      ],
+      args: localChromium
+        ? ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
+        : [
+            ...chromiumPack.args,
+            '--disable-web-security',
+            '--disable-features=IsolateOrigins',
+            '--disable-site-isolation-trials',
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process',
+            '--disable-gpu'
+          ],
       executablePath,
       headless: true
     });

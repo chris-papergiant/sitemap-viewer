@@ -25,7 +25,24 @@ const FETCH_TIMEOUT_MS = 20000;
 // layer. Cap below that so we fail fast with a clear error instead.
 const MAX_CONTENT_LENGTH = 4 * 1024 * 1024; // 4MB
 const MAX_REDIRECTS = 5;
-const RATE_LIMIT_PER_MINUTE = 60;
+// High enough for the crawler's legitimate traffic on protected sites
+// (batches of 3 pages/second routes everything through this endpoint),
+// low enough to blunt abuse. Overridable for the test harness.
+const DEFAULT_RATE_LIMIT_PER_MINUTE = 240;
+
+const getRateLimit = (): number =>
+  parseInt(process.env.FETCH_PROXY_RATE_LIMIT || '', 10) || DEFAULT_RATE_LIMIT_PER_MINUTE;
+
+// Test-harness escape hatch: hostnames (exact or suffix match) that skip the
+// private-address checks so a local mock origin can stand in for gov sites.
+// NEVER set FETCH_PROXY_TRUST_HOSTS in production.
+const isTrustedTestHost = (hostname: string): boolean => {
+  const entries = (process.env.FETCH_PROXY_TRUST_HOSTS || '')
+    .split(',')
+    .map(s => s.trim().toLowerCase())
+    .filter(Boolean);
+  return entries.some(e => hostname === e || hostname.endsWith(e));
+};
 
 // Reject hostnames/addresses in private or special-use ranges (SSRF protection)
 const isPrivateAddress = (addr: string): boolean => {
@@ -62,6 +79,9 @@ const validateTarget = async (target: URL): Promise<string | null> => {
   if (target.protocol !== 'http:' && target.protocol !== 'https:') {
     return 'Only http/https URLs are allowed';
   }
+  if (isTrustedTestHost(target.hostname)) {
+    return null;
+  }
   if (isPrivateAddress(target.hostname)) {
     return 'Requests to private hosts are not allowed';
   }
@@ -77,7 +97,7 @@ const validateTarget = async (target: URL): Promise<string | null> => {
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (!guardRequest(req, res, RATE_LIMIT_PER_MINUTE)) {
+  if (!guardRequest(req, res, getRateLimit())) {
     return;
   }
 
